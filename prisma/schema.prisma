@@ -1,0 +1,164 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  name         String
+  passwordHash String
+  phone        String?
+  role         String        @default("CUSTOMER") // "CUSTOMER" | "ADMIN"
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  addresses    Address[]
+  orders       Order[]
+  reviews      Review[]
+}
+
+model Address {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName    String
+  phone       String
+  addressLine String
+  city        String
+  state       String
+  postalCode  String
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+model Category {
+  id          String    @id @default(uuid())
+  name        String
+  slug        String    @unique
+  description String?
+  image       String?
+  products    Product[]
+  createdAt   DateTime  @default(now())
+}
+
+model Product {
+  id               String      @id @default(uuid())
+  name             String
+  slug             String      @unique
+  shortDescription String
+  fullDescription  String
+  sku              String      @unique
+  categoryId       String
+  category         Category    @relation(fields: [categoryId], references: [id])
+  price            Int // in INR (Rupees)
+  originalPrice    Int? // in INR (Rupees)
+  image            String
+  ingredients      String // Comma separated or detailed description
+  weight           String // e.g. "350g", "400g"
+  stock            Int         @default(100)
+  isFeatured       Boolean     @default(false)
+  isBestseller     Boolean     @default(false)
+  isPublished      Boolean     @default(true)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  orderItems       OrderItem[]
+  reviews          Review[]
+}
+
+model Order {
+  id                 String      @id @default(uuid())
+  orderNumber        String      @unique
+  userId             String?
+  user               User?       @relation(fields: [userId], references: [id])
+  guestEmail         String?
+  guestName          String?
+  guestPhone         String?
+  shippingAddress    String // Formatted address string or JSON
+  subtotal           Int // in Rupees
+  discount           Int         @default(0)
+  shippingFee        Int         @default(0)
+  total              Int // in Rupees
+  status             String      @default("PENDING_PAYMENT") // PENDING_PAYMENT | CONFIRMED | PROCESSING | PACKED | SHIPPED | DELIVERED | CANCELLED | REFUNDED
+  paymentMethod      String      @default("COD") // COD | RAZORPAY
+  paymentStatus      String      @default("PENDING") // PENDING | PAID | FAILED | REFUNDED
+  razorpayOrderId    String?
+  razorpayPaymentId  String?
+  trackingNumber     String?
+  courierName        String?
+  notes              String?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+  items              OrderItem[]
+}
+
+model OrderItem {
+  id           String   @id @default(uuid())
+  orderId      String
+  order        Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId    String
+  product      Product  @relation(fields: [productId], references: [id])
+  productName  String
+  productImage String
+  price        Int
+  quantity     Int
+  total        Int
+}
+
+model Coupon {
+  id             String    @id @default(uuid())
+  code           String    @unique
+  discountType   String // PERCENTAGE | FIXED
+  discountValue  Int
+  minOrderAmount Int       @default(0)
+  maxDiscount    Int?
+  maxUses        Int       @default(100)
+  usedCount      Int       @default(0)
+  isActive       Boolean   @default(true)
+  expiresAt      DateTime?
+  createdAt      DateTime  @default(now())
+}
+
+model Review {
+  id                 String   @id @default(uuid())
+  productId          String
+  product            Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  userId             String?
+  user               User?    @relation(fields: [userId], references: [id])
+  userName           String
+  userAvatar         String?
+  rating             Int      @default(5)
+  comment            String
+  isApproved         Boolean  @default(true)
+  isVerifiedPurchase Boolean  @default(false)
+  createdAt          DateTime @default(now())
+}
+
+model ContactMessage {
+  id        String   @id @default(uuid())
+  name      String
+  email     String
+  phone     String?
+  subject   String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model NewsletterSubscriber {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  action     String
+  actorEmail String
+  details    String
+  createdAt  DateTime @default(now())
+}

@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-brand-deep: #063D29;
+  --color-brand-dark: #0B4A32;
+  --color-brand-primary: #174E37;
+  --color-brand-cream: #FFF9EC;
+  --color-brand-ivory: #F8F1DF;
+  --color-brand-botanical: #EFF1DC;
+  --color-brand-gold: #F5B82E;
+  --color-brand-brown: #76512E;
+  --color-brand-text: #163D2D;
+  --color-brand-muted: #68786B;
+  --color-brand-border: #E9E2CE;
+}
+
+body {
+  background-color: var(--color-brand-cream);
+  color: var(--color-brand-text);
+  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, .font-serif {
+  font-family: var(--font-playfair), Georgia, serif;
+}
+
+/* Custom scrollbar for brand look */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #F8F1DF;
+}
+::-webkit-scrollbar-thumb {
+  background: #174E37;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #0B4A32;
+}
+
+/* Botanical texture subtle overlay */
+.bg-cream-paper {
+  background-color: #FFF9EC;
+  background-image: radial-gradient(#174E37 0.5px, transparent 0.5px), radial-gradient(#174E37 0.5px, #FFF9EC 0.5px);
+  background-size: 20px 20px;
+  background-position: 0 0, 10px 10px;
+  background-opacity: 0.02;
+}
