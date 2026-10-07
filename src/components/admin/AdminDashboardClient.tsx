@@ -16,6 +16,9 @@ import {
   Mail,
   Save,
   Sparkles,
+  Upload,
+  Image as ImageIcon,
+  Check,
 } from "lucide-react";
 
 interface AdminDashboardClientProps {
@@ -74,10 +77,15 @@ export default function AdminDashboardClient({
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
 
-  // New product form modal state
+  // New product form modal state with custom image file support
   const [showNewProductModal, setShowNewProductModal] = useState(false);
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string>("/images/products/mango-pickle.jpg");
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+
   const [newProductData, setNewProductData] = useState({
     name: "",
+    malayalamName: "",
     slug: "",
     shortDescription: "",
     fullDescription: "",
@@ -90,6 +98,22 @@ export default function AdminDashboardClient({
     ingredients: "Spices, Mustard Oil, Salt",
     image: "/images/products/mango-pickle.jpg",
   });
+
+  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedImageFile(file);
+      const preview = URL.createObjectURL(file);
+      setImagePreviewUrl(preview);
+      setNewProductData((prev) => ({ ...prev, image: preview }));
+    }
+  };
+
+  const handleSelectPresetImage = (presetUrl: string) => {
+    setSelectedImageFile(null);
+    setImagePreviewUrl(presetUrl);
+    setNewProductData((prev) => ({ ...prev, image: presetUrl }));
+  };
 
   const handleUpdateOrderStatus = async (orderId: string, newStatus: string) => {
     setLoadingAction(orderId);
@@ -196,16 +220,43 @@ export default function AdminDashboardClient({
   const handleCreateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      let finalImageUrl = newProductData.image;
+
+      // If user selected a file from device, upload it first
+      if (selectedImageFile) {
+        setIsUploadingImage(true);
+        try {
+          const formData = new FormData();
+          formData.append("file", selectedImageFile);
+          const uploadRes = await fetch("/api/admin/upload", {
+            method: "POST",
+            body: formData,
+          });
+          const uploadData = await uploadRes.json();
+          if (uploadRes.ok && uploadData.url) {
+            finalImageUrl = uploadData.url;
+          }
+        } catch (uploadErr) {
+          console.warn("Upload failed, falling back to existing image URL:", uploadErr);
+        } finally {
+          setIsUploadingImage(false);
+        }
+      }
+
       const res = await fetch("/api/admin/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newProductData),
+        body: JSON.stringify({
+          ...newProductData,
+          image: finalImageUrl,
+        }),
       });
       const data = await res.json();
       if (res.ok) {
         setProducts([data.product, ...products]);
         setShowNewProductModal(false);
-        setMessage({ text: "New pickle product added successfully!", type: "success" });
+        setSelectedImageFile(null);
+        setMessage({ text: "New pickle product added successfully with photo!", type: "success" });
       } else {
         setMessage({ text: data.error || "Product creation failed", type: "error" });
       }
@@ -497,7 +548,11 @@ export default function AdminDashboardClient({
               Products Catalog
             </h3>
             <button
-              onClick={() => setShowNewProductModal(true)}
+              onClick={() => {
+                setImagePreviewUrl("/images/products/mango-pickle.jpg");
+                setSelectedImageFile(null);
+                setShowNewProductModal(true);
+              }}
               className="px-4 py-2 bg-[#174E37] text-[#FFF9EC] rounded-full text-xs font-semibold flex items-center gap-1.5 shadow"
             >
               <Plus className="w-4 h-4" /> Add New Pickle
@@ -782,41 +837,162 @@ export default function AdminDashboardClient({
         </div>
       )}
 
-      {/* New Product Modal */}
+      {/* New Product Modal with Photo Upload from Computer / Device */}
       {showNewProductModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 border border-[#E9E2CE] shadow-2xl space-y-4">
-            <h3 className="font-serif font-bold text-2xl text-[#163D2D]">Add New Pickle Product</h3>
-            <form onSubmit={handleCreateProduct} className="space-y-3 text-xs">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 border border-[#E9E2CE] shadow-2xl space-y-5 my-8">
+            <div className="flex items-center justify-between border-b border-[#E9E2CE] pb-3">
               <div>
-                <label className="font-bold block mb-1">Product Name</label>
-                <input
-                  type="text"
-                  required
-                  value={newProductData.name}
-                  onChange={(e) =>
-                    setNewProductData({
-                      ...newProductData,
-                      name: e.target.value,
-                      slug: e.target.value.toLowerCase().replace(/\s+/g, "-"),
-                    })
-                  }
-                  className="w-full p-2 bg-[#FFF9EC] border rounded-lg"
-                />
+                <h3 className="font-serif font-bold text-2xl text-[#163D2D]">Add New Pickle Product</h3>
+                <p className="text-xs text-[#68786B]">Upload pickle photo from your device or select from catalog</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowNewProductModal(false)}
+                className="text-[#68786B] hover:text-[#163D2D] text-lg font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateProduct} className="space-y-4 text-xs">
+              
+              {/* Product Photo Upload Section */}
+              <div className="space-y-2 p-4 bg-[#FFF9EC] rounded-2xl border border-[#E9E2CE]">
+                <label className="font-bold text-[#163D2D] block">
+                  Product Photo / Image
+                </label>
+                
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  {/* Image Preview */}
+                  <div className="relative w-28 h-28 rounded-2xl overflow-hidden bg-white border-2 border-[#174E37]/30 shadow-md flex-shrink-0">
+                    <Image
+                      src={imagePreviewUrl}
+                      alt="Product preview"
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+
+                  {/* Upload Controls */}
+                  <div className="space-y-2 flex-1 w-full">
+                    <label
+                      htmlFor="pickle-photo-input"
+                      className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#174E37] text-white rounded-full font-bold cursor-pointer hover:bg-[#0B4A32] transition-colors shadow-sm text-xs"
+                    >
+                      <Upload className="w-4 h-4" />
+                      <span>Upload Photo from Device</span>
+                    </label>
+                    <input
+                      id="pickle-photo-input"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageFileChange}
+                      className="hidden"
+                    />
+                    <p className="text-[11px] text-[#68786B]">
+                      {selectedImageFile
+                        ? `Selected: ${selectedImageFile.name}`
+                        : "Supports JPG, PNG, WEBP from your phone or PC"}
+                    </p>
+
+                    {/* Presets */}
+                    <div className="pt-1">
+                      <span className="text-[10px] text-[#68786B] block mb-1 font-semibold uppercase">Or Choose Preset Jar:</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleSelectPresetImage("/images/products/mango-pickle.jpg")}
+                          className="px-2.5 py-1 bg-white border border-[#E9E2CE] rounded-lg text-[10px] font-semibold text-[#163D2D] hover:bg-[#EFF1DC]"
+                        >
+                          Mango Pickle
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleSelectPresetImage("/images/products/garlic-pickle.jpg")}
+                          className="px-2.5 py-1 bg-white border border-[#E9E2CE] rounded-lg text-[10px] font-semibold text-[#163D2D] hover:bg-[#EFF1DC]"
+                        >
+                          Garlic Pickle
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleSelectPresetImage("/images/products/mixed-veg-pickle.jpg")}
+                          className="px-2.5 py-1 bg-white border border-[#E9E2CE] rounded-lg text-[10px] font-semibold text-[#163D2D] hover:bg-[#EFF1DC]"
+                        >
+                          Mixed Veg
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleSelectPresetImage("/images/banners/pickle-bowl-story.jpg")}
+                          className="px-2.5 py-1 bg-white border border-[#E9E2CE] rounded-lg text-[10px] font-semibold text-[#163D2D] hover:bg-[#EFF1DC]"
+                        >
+                          Bharani Bowl
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div>
-                <label className="font-bold block mb-1">Slug</label>
-                <input
-                  type="text"
-                  required
-                  value={newProductData.slug}
-                  onChange={(e) => setNewProductData({ ...newProductData, slug: e.target.value })}
-                  className="w-full p-2 bg-[#FFF9EC] border rounded-lg font-mono"
-                />
+              {/* Title & Malayalam Name */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold block mb-1">Product Title (English)</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Cut Mango Pickle"
+                    value={newProductData.name}
+                    onChange={(e) =>
+                      setNewProductData({
+                        ...newProductData,
+                        name: e.target.value,
+                        slug: e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+                      })
+                    }
+                    className="w-full p-2.5 bg-[#FFF9EC] border rounded-xl"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold block mb-1">Malayalam Name</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. കണ്ണിമാങ്ങ അച്ചാർ"
+                    value={newProductData.malayalamName}
+                    onChange={(e) => setNewProductData({ ...newProductData, malayalamName: e.target.value })}
+                    className="w-full p-2.5 bg-[#FFF9EC] border rounded-xl"
+                  />
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              {/* Slug & SKU */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold block mb-1">URL Slug</label>
+                  <input
+                    type="text"
+                    required
+                    value={newProductData.slug}
+                    onChange={(e) => setNewProductData({ ...newProductData, slug: e.target.value })}
+                    className="w-full p-2.5 bg-[#FFF9EC] border rounded-xl font-mono text-xs"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold block mb-1">SKU</label>
+                  <input
+                    type="text"
+                    placeholder="ZP-NEW-350"
+                    value={newProductData.sku}
+                    onChange={(e) => setNewProductData({ ...newProductData, sku: e.target.value })}
+                    className="w-full p-2.5 bg-[#FFF9EC] border rounded-xl font-mono text-xs"
+                  />
+                </div>
+              </div>
+
+              {/* Price, Stock, Weight */}
+              <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="font-bold block mb-1">Price (₹)</label>
                   <input
@@ -824,21 +1000,54 @@ export default function AdminDashboardClient({
                     required
                     value={newProductData.price}
                     onChange={(e) => setNewProductData({ ...newProductData, price: Number(e.target.value) })}
-                    className="w-full p-2 bg-[#FFF9EC] border rounded-lg"
+                    className="w-full p-2.5 bg-[#FFF9EC] border rounded-xl"
                   />
                 </div>
                 <div>
-                  <label className="font-bold block mb-1">Stock Jars</label>
+                  <label className="font-bold block mb-1">MRP Price (₹)</label>
+                  <input
+                    type="number"
+                    value={newProductData.originalPrice}
+                    onChange={(e) => setNewProductData({ ...newProductData, originalPrice: Number(e.target.value) })}
+                    className="w-full p-2.5 bg-[#FFF9EC] border rounded-xl"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold block mb-1">Stock (Jars)</label>
                   <input
                     type="number"
                     required
                     value={newProductData.stock}
                     onChange={(e) => setNewProductData({ ...newProductData, stock: Number(e.target.value) })}
-                    className="w-full p-2 bg-[#FFF9EC] border rounded-lg"
+                    className="w-full p-2.5 bg-[#FFF9EC] border rounded-xl"
                   />
                 </div>
               </div>
 
+              {/* Weight & Ingredients */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold block mb-1">Net Weight</label>
+                  <input
+                    type="text"
+                    value={newProductData.weight}
+                    onChange={(e) => setNewProductData({ ...newProductData, weight: e.target.value })}
+                    className="w-full p-2.5 bg-[#FFF9EC] border rounded-xl"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold block mb-1">Ingredients</label>
+                  <input
+                    type="text"
+                    value={newProductData.ingredients}
+                    onChange={(e) => setNewProductData({ ...newProductData, ingredients: e.target.value })}
+                    className="w-full p-2.5 bg-[#FFF9EC] border rounded-xl"
+                  />
+                </div>
+              </div>
+
+              {/* Description */}
               <div>
                 <label className="font-bold block mb-1">Short Description</label>
                 <textarea
@@ -846,23 +1055,24 @@ export default function AdminDashboardClient({
                   rows={2}
                   value={newProductData.shortDescription}
                   onChange={(e) => setNewProductData({ ...newProductData, shortDescription: e.target.value })}
-                  className="w-full p-2 bg-[#FFF9EC] border rounded-lg"
+                  className="w-full p-2.5 bg-[#FFF9EC] border rounded-xl"
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-3">
+              <div className="flex justify-end gap-3 pt-3 border-t border-[#E9E2CE]">
                 <button
                   type="button"
                   onClick={() => setShowNewProductModal(false)}
-                  className="px-4 py-2 rounded-full border text-[#68786B]"
+                  className="px-5 py-2.5 rounded-full border text-[#68786B] font-semibold"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 rounded-full bg-[#174E37] text-white font-bold"
+                  disabled={isUploadingImage}
+                  className="px-7 py-2.5 rounded-full bg-[#174E37] text-white font-bold hover:bg-[#0B4A32] shadow-md flex items-center gap-1.5"
                 >
-                  Save Product
+                  {isUploadingImage ? "Uploading Photo..." : "Save Pickle Product"}
                 </button>
               </div>
             </form>

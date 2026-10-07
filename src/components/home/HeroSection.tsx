@@ -28,7 +28,10 @@ export default function HeroSection({ content }: HeroSectionProps) {
     content?.description ||
     "Handcrafted Kerala pickles prepared with Amma's traditional recipes, garden-fresh ingredients, and the warmth of a Kerala home kitchen.";
   const primaryBtnText = content?.primaryBtnText || "Shop Amma's Pickles";
-  const primaryBtnLink = content?.primaryBtnLink || "/products";
+  const primaryBtnLink =
+    content?.primaryBtnLink && content.primaryBtnLink.trim().length > 0
+      ? content.primaryBtnLink.trim()
+      : "/products";
   const secondaryBtnText = content?.secondaryBtnText || "Amma's Story • അമ്മയുടെ കഥ";
   const secondaryBtnLink = content?.secondaryBtnLink || "/our-story";
   const heroImage = content?.heroImage || "/images/banners/hero-pickles.jpg";
@@ -47,7 +50,7 @@ export default function HeroSection({ content }: HeroSectionProps) {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
           
           {/* Left Content (7 columns on large desktop) */}
-          <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
+          <div className="lg:col-span-7 space-y-6 text-center lg:text-left relative z-20">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#EFF1DC] text-[#174E37] text-xs font-bold tracking-wider border border-[#E9E2CE]">
               <Sparkles className="w-3.5 h-3.5 text-[#F5B82E]" />
               <span>{eyebrow}</span>
@@ -61,17 +64,18 @@ export default function HeroSection({ content }: HeroSectionProps) {
               {description} <span className="font-semibold text-[#174E37] block sm:inline mt-1 sm:mt-0">{malayalamText}</span>
             </p>
 
-            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 relative z-30">
               <Link
-                href={primaryBtnLink}
-                className="w-full sm:w-auto px-8 py-3.5 bg-[#174E37] text-[#FFF9EC] rounded-full font-semibold text-base shadow-lg hover:bg-[#0B4A32] active:scale-95 transition-all flex items-center justify-center gap-2 group"
+                href="/products"
+                className="w-full sm:w-auto px-8 py-3.5 bg-[#174E37] text-[#FFF9EC] rounded-full font-semibold text-base shadow-lg hover:bg-[#0B4A32] active:scale-95 transition-all flex items-center justify-center gap-2 group cursor-pointer"
+                aria-label="Shop Amma's Pickles"
               >
                 <span>{primaryBtnText}</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>
               <Link
-                href={secondaryBtnLink}
-                className="w-full sm:w-auto px-8 py-3.5 border-2 border-[#174E37] text-[#174E37] rounded-full font-semibold text-base hover:bg-[#EFF1DC]/60 active:scale-95 transition-all text-center"
+                href="/our-story"
+                className="w-full sm:w-auto px-8 py-3.5 border-2 border-[#174E37] text-[#174E37] rounded-full font-semibold text-base hover:bg-[#EFF1DC]/60 active:scale-95 transition-all text-center cursor-pointer"
               >
                 {secondaryBtnText}
               </Link>

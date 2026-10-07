@@ -37,8 +37,21 @@ export async function POST(req: Request) {
       isPublished,
     } = data;
 
-    if (!name || !slug || !price || !categoryId) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    let targetCategoryId = categoryId;
+    if (!targetCategoryId) {
+      const defaultCat = await prisma.category.findFirst();
+      if (defaultCat) {
+        targetCategoryId = defaultCat.id;
+      } else {
+        const createdCat = await prisma.category.create({
+          data: { name: "Traditional Pickles", slug: "traditional-pickles" },
+        });
+        targetCategoryId = createdCat.id;
+      }
+    }
+
+    if (!name || !slug || !price) {
+      return NextResponse.json({ error: "Missing name, slug, or price" }, { status: 400 });
     }
 
     const newProduct = await prisma.product.create({
@@ -46,19 +59,20 @@ export async function POST(req: Request) {
         name,
         slug,
         shortDescription: shortDescription || "",
-        fullDescription: fullDescription || "",
+        fullDescription: fullDescription || shortDescription || "",
         sku: sku || `ZP-${Date.now()}`,
-        categoryId,
+        categoryId: targetCategoryId,
         price: Number(price),
         originalPrice: originalPrice ? Number(originalPrice) : null,
         image: image || "/images/products/mango-pickle.jpg",
-        ingredients: ingredients || "",
+        ingredients: ingredients || "Traditional Spices, Cold-Pressed Oil, Salt",
         weight: weight || "350g",
         stock: Number(stock) || 50,
         isFeatured: Boolean(isFeatured),
         isBestseller: Boolean(isBestseller),
         isPublished: isPublished !== undefined ? Boolean(isPublished) : true,
       },
+      include: { category: true },
     });
 
     await prisma.auditLog.create({
