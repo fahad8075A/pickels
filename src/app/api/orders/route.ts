@@ -12,9 +12,10 @@ export async function POST(req: Request) {
     const {
       items,
       couponCode,
-      paymentMethod, // "COD" | "RAZORPAY"
+      paymentMethod, // "COD" | "RAZORPAY" | "DIRECT_BANK" | "DIRECT_UPI"
       shippingDetails,
       notes,
+      utrNumber,
     } = body;
 
     if (!items || items.length === 0) {
@@ -40,6 +41,20 @@ export async function POST(req: Request) {
     const formattedAddress = `${shippingDetails.fullName}, ${shippingDetails.phone ? `Phone: ${shippingDetails.phone}, ` : ""}${shippingDetails.addressLine}, ${shippingDetails.city}, ${shippingDetails.state} - ${shippingDetails.postalCode}`;
 
     const isOnlinePayment = paymentMethod === "RAZORPAY";
+    const isDirectBank = paymentMethod === "DIRECT_BANK" || paymentMethod === "DIRECT_UPI";
+
+    const orderPaymentMethod = isOnlinePayment
+      ? "RAZORPAY"
+      : isDirectBank
+      ? "DIRECT_BANK"
+      : "COD";
+
+    const formattedNotes = [
+      notes,
+      utrNumber ? `[Bank/UPI Transfer UTR: ${utrNumber}]` : null,
+    ]
+      .filter(Boolean)
+      .join(" | ");
 
     // 2. Database Transaction to Create Order and Line Items
     const newOrder = await prisma.$transaction(async (tx) => {
@@ -56,9 +71,10 @@ export async function POST(req: Request) {
           shippingFee: calc.shippingFee,
           total: calc.total,
           status: isOnlinePayment ? "PENDING_PAYMENT" : "CONFIRMED",
-          paymentMethod: isOnlinePayment ? "RAZORPAY" : "COD",
-          paymentStatus: "PENDING",
-          notes: notes || null,
+          paymentMethod: orderPaymentMethod,
+          paymentStatus: isDirectBank ? "PENDING_VERIFICATION" : "PENDING",
+          razorpayPaymentId: utrNumber ? `UTR-${utrNumber}` : null,
+          notes: formattedNotes || null,
           items: {
             create: calc.items.map((item) => ({
               productId: item.productId,
@@ -75,7 +91,7 @@ export async function POST(req: Request) {
         },
       });
 
-      // If COD, immediately decrement stock and increment coupon usage
+      // If COD or Direct Bank, immediately decrement stock and increment coupon usage
       if (!isOnlinePayment) {
         for (const item of calc.items) {
           await tx.product.update({
@@ -118,6 +134,11 @@ export async function POST(req: Request) {
       }
     }
 
+    const keyId =
+      process.env.RAZORPAY_KEY_ID ||
+      process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ||
+      "rzp_test_mock_key";
+
     return NextResponse.json({
       success: true,
       order: {
@@ -126,8 +147,11 @@ export async function POST(req: Request) {
         total: newOrder.total,
         status: newOrder.status,
         paymentMethod: newOrder.paymentMethod,
+        paymentStatus: newOrder.paymentStatus,
+        notes: newOrder.notes,
       },
       razorpayOrder,
+      razorpayKeyId: keyId,
       isMockPayment: isMockPaymentMode,
     });
   } catch (error) {

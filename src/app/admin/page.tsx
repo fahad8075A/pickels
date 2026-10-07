@@ -50,6 +50,9 @@ export default async function AdminPage() {
     prisma.contactMessage.findMany({ orderBy: { createdAt: "desc" }, take: 10 }),
   ]);
 
+  const { getPaymentSettings } = await import("@/lib/settings");
+  const paymentSettings = await getPaymentSettings();
+
   const paidOrders = await prisma.order.findMany({
     where: {
       OR: [{ paymentStatus: "PAID" }, { status: "DELIVERED" }, { status: "CONFIRMED" }],
@@ -106,6 +109,7 @@ export default async function AdminPage() {
           }}
           initialCoupons={coupons}
           initialMessages={contactMessages}
+          initialPaymentSettings={paymentSettings}
         />
 
       </div>

@@ -53,8 +53,17 @@ export default async function CheckoutSuccessPage({ searchParams }: SuccessPageP
               <div className="sm:text-right">
                 <p className="text-xs text-[#68786B]">Payment Method</p>
                 <span className="inline-block px-3 py-1 bg-[#EFF1DC] text-[#174E37] text-xs font-bold rounded-full">
-                  {order.paymentMethod === "COD" ? "Cash on Delivery" : "Razorpay Online Paid"}
+                  {order.paymentMethod === "COD"
+                    ? "Cash on Delivery"
+                    : order.paymentMethod === "DIRECT_BANK"
+                    ? "Direct Bank Transfer & UPI"
+                    : "Razorpay Online Paid"}
                 </span>
+                {order.paymentMethod === "DIRECT_BANK" && order.razorpayPaymentId && (
+                  <p className="text-[11px] font-mono text-emerald-800 mt-1">
+                    Ref: {order.razorpayPaymentId}
+                  </p>
+                )}
               </div>
             </div>
 

@@ -19,6 +19,9 @@ import {
   Upload,
   Image as ImageIcon,
   Check,
+  Building2,
+  CreditCard,
+  QrCode,
 } from "lucide-react";
 
 interface AdminDashboardClientProps {
@@ -40,6 +43,7 @@ interface AdminDashboardClientProps {
   };
   initialCoupons: any[];
   initialMessages: any[];
+  initialPaymentSettings?: any;
 }
 
 export default function AdminDashboardClient({
@@ -50,14 +54,32 @@ export default function AdminDashboardClient({
   initialCms,
   initialCoupons,
   initialMessages,
+  initialPaymentSettings,
 }: AdminDashboardClientProps) {
   const [activeTab, setActiveTab] = useState<
-    "overview" | "orders" | "products" | "inventory" | "cms" | "coupons" | "messages"
+    "overview" | "orders" | "products" | "inventory" | "cms" | "coupons" | "messages" | "payments"
   >("overview");
 
   const [orders, setOrders] = useState(initialOrders);
   const [products, setProducts] = useState(initialProducts);
   const [coupons, setCoupons] = useState(initialCoupons);
+  const [paymentSettings, setPaymentSettings] = useState(
+    initialPaymentSettings || {
+      upiId: "zeztypickles@okaxis",
+      accountHolderName: "Zezty Pickles Handcrafted Foods",
+      accountNumber: "50200084729184",
+      bankName: "HDFC Bank",
+      ifscCode: "HDFC0001234",
+      accountType: "Current Account",
+      branch: "MG Road, Kochi, Kerala",
+      instructions:
+        "Scan the QR code or transfer to our direct bank account below. Enter your 12-digit UTR/UPI reference number to immediately confirm your order.",
+      razorpayKeyId: "rzp_test_mock_key",
+      razorpayEnabled: true,
+      directBankEnabled: true,
+      codEnabled: true,
+    }
+  );
   const [cmsHero, setCmsHero] = useState({
     heading: initialCms.hero?.heading || "A Little Tang, A Lot of Tradition.",
     eyebrow: initialCms.hero?.eyebrow || "തനത് കേരള അച്ചാറുകൾ • AMMA'S TRADITIONAL KERALA PICKLES",
@@ -132,6 +154,67 @@ export default function AdminDashboardClient({
       }
     } catch {
       setMessage({ text: "Network error updating order", type: "error" });
+    } finally {
+      setLoadingAction(null);
+      setTimeout(() => setMessage(null), 3000);
+    }
+  };
+
+  const handleConfirmBankPayment = async (orderId: string) => {
+    setLoadingAction(orderId);
+    try {
+      const res = await fetch("/api/admin/orders", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId,
+          paymentStatus: "PAID",
+          status: "CONFIRMED",
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setOrders(
+          orders.map((o) =>
+            o.id === orderId ? { ...o, paymentStatus: "PAID", status: "CONFIRMED" } : o
+          )
+        );
+        setMessage({
+          text: "Direct Bank transfer verified & marked as PAID!",
+          type: "success",
+        });
+      } else {
+        setMessage({ text: data.error || "Update failed", type: "error" });
+      }
+    } catch {
+      setMessage({ text: "Network error confirming payment", type: "error" });
+    } finally {
+      setLoadingAction(null);
+      setTimeout(() => setMessage(null), 3000);
+    }
+  };
+
+  const handleSavePaymentSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoadingAction("payments");
+    try {
+      const res = await fetch("/api/admin/settings/payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(paymentSettings),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setPaymentSettings(data.settings);
+        setMessage({
+          text: "Merchant Bank details & Gateway settings updated successfully!",
+          type: "success",
+        });
+      } else {
+        setMessage({ text: data.error || "Failed to update settings", type: "error" });
+      }
+    } catch {
+      setMessage({ text: "Network error saving payment settings", type: "error" });
     } finally {
       setLoadingAction(null);
       setTimeout(() => setMessage(null), 3000);
@@ -356,6 +439,17 @@ export default function AdminDashboardClient({
           <Mail className="w-3.5 h-3.5" />
           <span>Customer Inquiries</span>
         </button>
+        <button
+          onClick={() => setActiveTab("payments")}
+          className={`px-4 py-2.5 rounded-full text-xs font-bold transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+            activeTab === "payments"
+              ? "bg-[#174E37] text-[#FFF9EC]"
+              : "bg-white text-[#163D2D] hover:bg-[#EFF1DC]"
+          }`}
+        >
+          <Building2 className="w-3.5 h-3.5" />
+          <span>Bank & Payment Gateway</span>
+        </button>
       </div>
 
       {/* Tab 1: Overview */}
@@ -496,6 +590,7 @@ export default function AdminDashboardClient({
                   <th className="pb-3">Destination</th>
                   <th className="pb-3">Items</th>
                   <th className="pb-3">Total</th>
+                  <th className="pb-3">Payment & Bank UTR</th>
                   <th className="pb-3">Fulfillment Status</th>
                 </tr>
               </thead>
@@ -516,6 +611,50 @@ export default function AdminDashboardClient({
                     </td>
                     <td className="py-3 font-serif font-bold text-[#163D2D]">
                       ₹{o.total}
+                    </td>
+                    <td className="py-3 space-y-1">
+                      <div>
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            o.paymentMethod === "DIRECT_BANK"
+                              ? "bg-emerald-100 text-emerald-800"
+                              : o.paymentMethod === "RAZORPAY"
+                              ? "bg-blue-100 text-blue-800"
+                              : "bg-[#EFF1DC] text-[#174E37]"
+                          }`}
+                        >
+                          {o.paymentMethod === "DIRECT_BANK"
+                            ? "Direct Bank / UPI"
+                            : o.paymentMethod === "RAZORPAY"
+                            ? "Razorpay Gateway"
+                            : "COD"}
+                        </span>
+                      </div>
+                      {o.razorpayPaymentId && (
+                        <p className="text-[10px] font-mono text-[#163D2D] bg-[#FFF9EC] px-1.5 py-0.5 rounded border border-[#E9E2CE] inline-block">
+                          {o.razorpayPaymentId}
+                        </p>
+                      )}
+                      <div>
+                        {o.paymentStatus === "PAID" ? (
+                          <span className="text-[10px] text-emerald-700 font-bold flex items-center gap-1">
+                            <Check className="w-3 h-3" /> PAID
+                          </span>
+                        ) : o.paymentMethod === "DIRECT_BANK" ? (
+                          <button
+                            type="button"
+                            onClick={() => handleConfirmBankPayment(o.id)}
+                            disabled={loadingAction === o.id}
+                            className="px-2 py-1 bg-[#174E37] text-white rounded-lg text-[10px] font-bold hover:bg-[#0B4A32] shadow-sm flex items-center gap-1"
+                          >
+                            <Check className="w-3 h-3" /> Confirm Paid
+                          </button>
+                        ) : (
+                          <span className="text-[10px] text-amber-700 font-bold">
+                            {o.paymentStatus}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3">
                       <select
@@ -834,6 +973,315 @@ export default function AdminDashboardClient({
               <p className="text-xs text-[#68786B] italic">No customer inquiries yet.</p>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Tab 8: Bank Account & Payment Settings */}
+      {activeTab === "payments" && (
+        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#E9E2CE] shadow-sm space-y-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#E9E2CE] gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 bg-[#EFF1DC] text-[#174E37] text-xs font-bold rounded-full">
+                  DIRECT BANK SETTLEMENT
+                </span>
+              </div>
+              <h3 className="font-serif font-bold text-2xl text-[#163D2D] mt-1">
+                Bank Account & Payment Gateways
+              </h3>
+              <p className="text-xs text-[#68786B]">
+                Enter your real bank account details. Customers can transfer directly to this account via UPI/IMPS with 0% gateway deductions.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-full flex items-center gap-1.5">
+                <Check className="w-3.5 h-3.5" /> Direct Transfer Active
+              </span>
+            </div>
+          </div>
+
+          {/* Live Preview Card */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="md:col-span-2 bg-[#FFF9EC] p-6 rounded-2xl border border-[#E9E2CE] space-y-4">
+              <span className="text-xs font-bold text-[#174E37] uppercase tracking-wider block">
+                Current Live Bank Card (Visible on Checkout)
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div className="p-3 bg-white rounded-xl border border-[#E9E2CE]">
+                  <span className="text-[#68786B] block">Bank Name</span>
+                  <span className="font-bold text-sm text-[#163D2D]">
+                    {paymentSettings.bankName || "Not configured"}
+                  </span>
+                </div>
+                <div className="p-3 bg-white rounded-xl border border-[#E9E2CE]">
+                  <span className="text-[#68786B] block">Account Holder</span>
+                  <span className="font-bold text-sm text-[#163D2D]">
+                    {paymentSettings.accountHolderName || "Not configured"}
+                  </span>
+                </div>
+                <div className="p-3 bg-white rounded-xl border border-[#E9E2CE]">
+                  <span className="text-[#68786B] block">Account Number</span>
+                  <span className="font-mono font-bold text-sm text-[#163D2D]">
+                    {paymentSettings.accountNumber || "Not configured"}
+                  </span>
+                </div>
+                <div className="p-3 bg-white rounded-xl border border-[#E9E2CE]">
+                  <span className="text-[#68786B] block">IFSC Code</span>
+                  <span className="font-mono font-bold text-sm text-[#163D2D]">
+                    {paymentSettings.ifscCode || "Not configured"}
+                  </span>
+                </div>
+                <div className="sm:col-span-2 p-3 bg-white rounded-xl border border-[#E9E2CE]">
+                  <span className="text-[#68786B] block">Merchant UPI ID (GPay, PhonePe, Paytm, BHIM)</span>
+                  <span className="font-mono font-bold text-sm text-[#174E37]">
+                    {paymentSettings.upiId || "Not configured"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Dynamic QR Preview */}
+            <div className="bg-[#FFF9EC] p-6 rounded-2xl border border-[#E9E2CE] flex flex-col items-center justify-center text-center space-y-3">
+              <span className="text-xs font-bold text-[#174E37] uppercase tracking-wider">
+                Live UPI QR Preview
+              </span>
+              <div className="w-32 h-32 bg-white p-2 rounded-xl border border-[#E9E2CE] shadow-sm flex items-center justify-center">
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(
+                    `upi://pay?pa=${paymentSettings.upiId}&pn=${paymentSettings.accountHolderName}&cu=INR`
+                  )}&color=163D2D`}
+                  alt="UPI QR Preview"
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              <p className="text-[11px] text-[#68786B]">
+                QR code generated dynamically for customer totals at checkout.
+              </p>
+            </div>
+          </div>
+
+          {/* Settings Edit Form */}
+          <form onSubmit={handleSavePaymentSettings} className="space-y-6 pt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 text-xs">
+              <div>
+                <label className="font-bold text-[#163D2D] block mb-1">
+                  Bank Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={paymentSettings.bankName}
+                  onChange={(e) =>
+                    setPaymentSettings({ ...paymentSettings, bankName: e.target.value })
+                  }
+                  placeholder="e.g. HDFC Bank / State Bank of India / Federal Bank"
+                  className="w-full p-3 bg-[#FFF9EC] border border-[#E9E2CE] rounded-xl text-sm text-[#163D2D] focus:ring-1 focus:ring-[#174E37]"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-[#163D2D] block mb-1">
+                  Bank Branch Location *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={paymentSettings.branch}
+                  onChange={(e) =>
+                    setPaymentSettings({ ...paymentSettings, branch: e.target.value })
+                  }
+                  placeholder="e.g. MG Road, Kochi, Kerala"
+                  className="w-full p-3 bg-[#FFF9EC] border border-[#E9E2CE] rounded-xl text-sm text-[#163D2D] focus:ring-1 focus:ring-[#174E37]"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-[#163D2D] block mb-1">
+                  Account Holder Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={paymentSettings.accountHolderName}
+                  onChange={(e) =>
+                    setPaymentSettings({
+                      ...paymentSettings,
+                      accountHolderName: e.target.value,
+                    })
+                  }
+                  placeholder="e.g. Zezty Pickles Handcrafted Foods"
+                  className="w-full p-3 bg-[#FFF9EC] border border-[#E9E2CE] rounded-xl text-sm text-[#163D2D] focus:ring-1 focus:ring-[#174E37]"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-[#163D2D] block mb-1">
+                  Bank Account Number *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={paymentSettings.accountNumber}
+                  onChange={(e) =>
+                    setPaymentSettings({ ...paymentSettings, accountNumber: e.target.value })
+                  }
+                  placeholder="e.g. 50200084729184"
+                  className="w-full p-3 bg-[#FFF9EC] border border-[#E9E2CE] rounded-xl text-sm font-mono text-[#163D2D] focus:ring-1 focus:ring-[#174E37]"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-[#163D2D] block mb-1">
+                  IFSC Code *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={paymentSettings.ifscCode}
+                  onChange={(e) =>
+                    setPaymentSettings({
+                      ...paymentSettings,
+                      ifscCode: e.target.value.toUpperCase(),
+                    })
+                  }
+                  placeholder="e.g. HDFC0001234"
+                  className="w-full p-3 bg-[#FFF9EC] border border-[#E9E2CE] rounded-xl text-sm font-mono text-[#163D2D] focus:ring-1 focus:ring-[#174E37]"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-[#163D2D] block mb-1">
+                  Account Type
+                </label>
+                <select
+                  value={paymentSettings.accountType}
+                  onChange={(e) =>
+                    setPaymentSettings({ ...paymentSettings, accountType: e.target.value })
+                  }
+                  className="w-full p-3 bg-[#FFF9EC] border border-[#E9E2CE] rounded-xl text-sm text-[#163D2D] focus:ring-1 focus:ring-[#174E37]"
+                >
+                  <option value="Current Account">Current Account (Business)</option>
+                  <option value="Savings Account">Savings Account (Personal)</option>
+                </select>
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="font-bold text-[#163D2D] block mb-1">
+                  Merchant UPI ID (for GPay, PhonePe, Paytm, CRED) *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={paymentSettings.upiId}
+                  onChange={(e) =>
+                    setPaymentSettings({ ...paymentSettings, upiId: e.target.value })
+                  }
+                  placeholder="e.g. zeztypickles@okaxis or yourname@upi"
+                  className="w-full p-3 bg-[#FFF9EC] border border-[#E9E2CE] rounded-xl text-sm font-mono text-[#174E37] focus:ring-1 focus:ring-[#174E37]"
+                />
+                <p className="text-[11px] text-[#68786B] mt-1">
+                  * Funds sent to this UPI ID settle directly into your bank account immediately.
+                </p>
+              </div>
+
+              <div>
+                <label className="font-bold text-[#163D2D] block mb-1">
+                  Razorpay Key ID (For Online Cards / Gateway)
+                </label>
+                <input
+                  type="text"
+                  value={paymentSettings.razorpayKeyId}
+                  onChange={(e) =>
+                    setPaymentSettings({ ...paymentSettings, razorpayKeyId: e.target.value })
+                  }
+                  placeholder="rzp_test_... or rzp_live_..."
+                  className="w-full p-3 bg-[#FFF9EC] border border-[#E9E2CE] rounded-xl text-sm font-mono text-[#163D2D] focus:ring-1 focus:ring-[#174E37]"
+                />
+              </div>
+
+              <div className="sm:col-span-3">
+                <label className="font-bold text-[#163D2D] block mb-1">
+                  Customer Transfer Instructions (Shown at Checkout)
+                </label>
+                <textarea
+                  rows={2}
+                  value={paymentSettings.instructions}
+                  onChange={(e) =>
+                    setPaymentSettings({
+                      ...paymentSettings,
+                      instructions: e.target.value,
+                    })
+                  }
+                  placeholder="e.g. Scan QR or transfer to bank account above. Enter your 12-digit UTR number to instantly clear order."
+                  className="w-full p-3 bg-[#FFF9EC] border border-[#E9E2CE] rounded-xl text-sm text-[#163D2D] focus:ring-1 focus:ring-[#174E37]"
+                />
+              </div>
+            </div>
+
+            {/* Gateways Active Toggles */}
+            <div className="p-4 bg-[#FFF9EC] rounded-2xl border border-[#E9E2CE] flex flex-wrap items-center gap-6 text-xs">
+              <label className="flex items-center gap-2 cursor-pointer font-bold text-[#163D2D]">
+                <input
+                  type="checkbox"
+                  checked={paymentSettings.directBankEnabled}
+                  onChange={(e) =>
+                    setPaymentSettings({
+                      ...paymentSettings,
+                      directBankEnabled: e.target.checked,
+                    })
+                  }
+                  className="h-4 w-4 text-[#174E37] rounded"
+                />
+                <span>Enable Direct Bank Transfer & UPI</span>
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer font-bold text-[#163D2D]">
+                <input
+                  type="checkbox"
+                  checked={paymentSettings.razorpayEnabled}
+                  onChange={(e) =>
+                    setPaymentSettings({
+                      ...paymentSettings,
+                      razorpayEnabled: e.target.checked,
+                    })
+                  }
+                  className="h-4 w-4 text-[#174E37] rounded"
+                />
+                <span>Enable Razorpay Payment Gateway</span>
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer font-bold text-[#163D2D]">
+                <input
+                  type="checkbox"
+                  checked={paymentSettings.codEnabled}
+                  onChange={(e) =>
+                    setPaymentSettings({
+                      ...paymentSettings,
+                      codEnabled: e.target.checked,
+                    })
+                  }
+                  className="h-4 w-4 text-[#174E37] rounded"
+                />
+                <span>Enable Cash on Delivery (COD)</span>
+              </label>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                type="submit"
+                disabled={loadingAction === "payments"}
+                className="px-8 py-3 bg-[#174E37] text-white font-bold rounded-full shadow-lg hover:bg-[#0B4A32] flex items-center gap-2 text-sm transition"
+              >
+                <Save className="w-4 h-4" />
+                <span>
+                  {loadingAction === "payments"
+                    ? "Saving Bank Details..."
+                    : "Save Bank & Payment Settings"}
+                </span>
+              </button>
+            </div>
+          </form>
         </div>
       )}
 
