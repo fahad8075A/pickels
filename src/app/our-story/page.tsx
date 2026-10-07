@@ -11,44 +11,50 @@ export default function OurStoryPage() {
         {/* Hero Banner */}
         <div className="text-center max-w-3xl mx-auto space-y-4">
           <span className="text-xs font-bold uppercase tracking-widest text-[#174E37]">
-            അമ്മയുടെ കഥ • KERALA HERITAGE & TRADITION
+            OUR STORY • അമ്മയുടെ കൈപ്പുണ്യം
           </span>
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-serif font-black text-[#163D2D]">
-            From Amma&apos;s Kitchen to Your Table
+            From Our Kitchen to Your Table
           </h1>
           <p className="text-lg font-serif italic text-[#174E37]">
-            “അമ്മയുടെ സ്നേഹവും കൈപ്പുണ്യവും ഓരോ കുപ്പിയിലും”
+            “നാടിന്റെ രുചി, വീട്ടിലെ സ്നേഹം • വീട്ടിലെ രുചി”
           </p>
           <p className="text-base sm:text-lg text-[#68786B] leading-relaxed">
-            At Zezty Pickles, we celebrate the warmth, aroma, and cherished memories of Kerala home kitchens. Every jar is slow-cured in traditional Bharani jars and handcrafted with Amma&apos;s time-honored recipes.
+            At Zezty Pickles, every jar begins with a memory. Inspired by the traditional kitchens of Kerala and the rich food culture of Malabar, our pickles are made with carefully selected ingredients, time-honoured recipes and the warmth of homemade cooking.
           </p>
         </div>
 
-        {/* Story Section 1: The Origin */}
+        {/* Story Section 1: The Malabar & Kerala Heritage */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           <div className="lg:col-span-6 relative">
             <div className="relative aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl border-4 border-white bg-white">
               <Image
-                src="/images/banners/pickle-bowl-story.jpg"
-                alt="Amma's pickle bowl and traditional Kerala spices"
+                src="/images/story/kerala-mother-story.jpg"
+                alt="A warm Kerala Muslim mother preparing authentic homemade pickle with fresh mangoes and spices in a Malabar courtyard kitchen"
                 fill
-                className="object-cover"
+                priority
+                className="object-cover object-center"
                 sizes="(max-width: 1024px) 100vw, 600px"
               />
+            </div>
+            <div className="absolute -bottom-4 -right-2 sm:bottom-4 sm:-right-4 bg-white/95 backdrop-blur-md px-5 py-2.5 rounded-2xl shadow-xl border border-[#E9E2CE]">
+              <span className="font-serif italic text-sm text-[#174E37] font-bold">
+                “അമ്മയുടെ സ്നേഹവും നാടൻ കൈപ്പുണ്യവും”
+              </span>
             </div>
           </div>
           <div className="lg:col-span-6 space-y-6">
             <h2 className="text-3xl font-serif font-bold text-[#163D2D]">
-              Preserving Amma&apos;s Authentic Kaipunyam (കൈപ്പുണ്യം)
+              Rooted in the Flavours of Malabar & Kerala Kitchens
             </h2>
             <p className="text-sm sm:text-base text-[#68786B] leading-relaxed">
-              Growing up in a traditional Kerala Tharavadu, summer mornings meant the unforgettable fragrance of fresh green Kannimanga and cut mangoes tossed with cold-pressed gingelly oil, whole mustard seeds, and freshly crushed fiery red chillies.
+              Growing up in Kerala, family kitchens were the heart of every home. The air was rich with the fragrance of green mangoes, roasted fenugreek, mustard crackling in cold-pressed oil, and freshly plucked curry leaves.
             </p>
             <p className="text-sm sm:text-base text-[#68786B] leading-relaxed">
-              We watched Amma meticulously seal large porcelain <span className="font-semibold text-[#174E37]">ഭരണി (Bharani)</span> jars with clean white muslin cloth, placing them in the warm courtyard sun so nature could slowly work its magic. No synthetic vinegars, no chemical preservatives, no shortcuts.
+              Every summer, mothers across Malabar carefully cured pickles in traditional glazed ceramic <span className="font-semibold text-[#174E37]">ഭരണി (Bharani)</span> jars, sealing them with white muslin cloth to mature naturally. Made with patience, without artificial vinegar or synthetic colors.
             </p>
             <p className="text-sm sm:text-base text-[#163D2D] font-medium bg-[#EFF1DC] p-4 rounded-2xl border border-[#E9E2CE]">
-              We started Zezty Pickles to bring that true, comforting taste of Amma&apos;s cooking into modern homes across the country.
+              “From the tang of raw mangoes to the aroma of mustard seeds, curry leaves and traditional spices, every jar carries a little piece of home to your table.”
             </p>
           </div>
         </div>

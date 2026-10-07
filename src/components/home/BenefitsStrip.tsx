@@ -5,22 +5,22 @@ export default function BenefitsStrip() {
   const benefits = [
     {
       title: "Traditional Recipes",
-      subtitle: "അമ്മയുടെ കൈപ്പുണ്യം (Amma's Recipes)",
+      subtitle: "നാടൻ രുചി",
       icon: BookOpen,
     },
     {
-      title: "Fresh Nadan Produce",
-      subtitle: "നാടൻ ചേരുവകൾ (Backyard Fresh)",
+      title: "Fresh Ingredients",
+      subtitle: "പുതിയ ചേരുവകൾ",
       icon: Leaf,
     },
     {
-      title: "Cured in Bharani",
-      subtitle: "ഭരണിയിൽ മൂപ്പിച്ചത് (Ceramic Aged)",
+      title: "Small Batch",
+      subtitle: "ചെറിയ ബാച്ചുകളിൽ",
       icon: Flame,
     },
     {
-      title: "Packed with Amma's Love",
-      subtitle: "അമ്മയുടെ സ്നേഹത്തോടെ (Homestyle Care)",
+      title: "Packed with Love",
+      subtitle: "സ്നേഹത്തോടെ പായ്ക്ക് ചെയ്തത്",
       icon: HeartHandshake,
     },
   ];
@@ -45,7 +45,7 @@ export default function BenefitsStrip() {
                   <h3 className="font-serif font-bold text-sm sm:text-base text-[#163D2D]">
                     {item.title}
                   </h3>
-                  <p className="text-xs text-[#68786B] mt-0.5">{item.subtitle}</p>
+                  <p className="text-xs font-semibold text-[#174E37] mt-0.5">{item.subtitle}</p>
                 </div>
               </div>
             );

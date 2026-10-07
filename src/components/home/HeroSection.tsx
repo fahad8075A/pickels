@@ -5,7 +5,35 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, Sparkles, ShieldCheck } from "lucide-react";
 
-export default function HeroSection() {
+interface HeroSectionProps {
+  content?: {
+    eyebrow?: string;
+    heading?: string;
+    malayalamText?: string;
+    description?: string;
+    primaryBtnText?: string;
+    primaryBtnLink?: string;
+    secondaryBtnText?: string;
+    secondaryBtnLink?: string;
+    heroImage?: string;
+    badgeText?: string;
+  };
+}
+
+export default function HeroSection({ content }: HeroSectionProps) {
+  const eyebrow = content?.eyebrow || "തനത് കേരള അച്ചാറുകൾ • AMMA'S TRADITIONAL KERALA PICKLES";
+  const heading = content?.heading || "A Little Tang, A Lot of Tradition.";
+  const malayalamText = content?.malayalamText || "അമ്മയുടെ സ്നേഹവും കൈപ്പുണ്യവും നിറഞ്ഞ തനത് നാടൻ രുചി.";
+  const description =
+    content?.description ||
+    "Handcrafted Kerala pickles prepared with Amma's traditional recipes, garden-fresh ingredients, and the warmth of a Kerala home kitchen.";
+  const primaryBtnText = content?.primaryBtnText || "Shop Amma's Pickles";
+  const primaryBtnLink = content?.primaryBtnLink || "/products";
+  const secondaryBtnText = content?.secondaryBtnText || "Amma's Story • അമ്മയുടെ കഥ";
+  const secondaryBtnLink = content?.secondaryBtnLink || "/our-story";
+  const heroImage = content?.heroImage || "/images/banners/hero-pickles.jpg";
+  const badgeText = content?.badgeText || "അമ്മയുടെ കൈപ്പുണ്യം";
+
   return (
     <section className="relative overflow-hidden bg-[#FFF9EC] py-12 md:py-20 lg:py-24 border-b border-[#E9E2CE]">
       {/* Decorative leaf watermarks in corners */}
@@ -22,31 +50,30 @@ export default function HeroSection() {
           <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#EFF1DC] text-[#174E37] text-xs font-bold tracking-wider border border-[#E9E2CE]">
               <Sparkles className="w-3.5 h-3.5 text-[#F5B82E]" />
-              <span>തനത് കേരള അച്ചാറുകൾ • AMMA&apos;S TRADITIONAL KERALA PICKLES</span>
+              <span>{eyebrow}</span>
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-serif font-black text-[#163D2D] tracking-tight leading-[1.15]">
-              A Little Tang, <br className="hidden sm:block" />
-              <span className="italic text-[#174E37]">A Lot of Tradition.</span>
+              {heading}
             </h1>
 
             <p className="text-base sm:text-lg text-[#68786B] max-w-xl mx-auto lg:mx-0 leading-relaxed font-normal">
-              Handcrafted Kerala pickles prepared with Amma&apos;s traditional recipes, garden-fresh ingredients, and the warmth of a Kerala home kitchen. <span className="font-semibold text-[#174E37]">അമ്മയുടെ സ്നേഹവും കൈപ്പുണ്യവും നിറഞ്ഞ തനത് നാടൻ രുചി.</span>
+              {description} <span className="font-semibold text-[#174E37] block sm:inline mt-1 sm:mt-0">{malayalamText}</span>
             </p>
 
             <div className="pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
               <Link
-                href="/products"
+                href={primaryBtnLink}
                 className="w-full sm:w-auto px-8 py-3.5 bg-[#174E37] text-[#FFF9EC] rounded-full font-semibold text-base shadow-lg hover:bg-[#0B4A32] active:scale-95 transition-all flex items-center justify-center gap-2 group"
               >
-                <span>Shop Amma&apos;s Pickles</span>
+                <span>{primaryBtnText}</span>
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>
               <Link
-                href="/our-story"
+                href={secondaryBtnLink}
                 className="w-full sm:w-auto px-8 py-3.5 border-2 border-[#174E37] text-[#174E37] rounded-full font-semibold text-base hover:bg-[#EFF1DC]/60 active:scale-95 transition-all text-center"
               >
-                Amma&apos;s Story • അമ്മയുടെ കഥ
+                {secondaryBtnText}
               </Link>
             </div>
 
@@ -73,7 +100,7 @@ export default function HeroSection() {
             <div className="absolute -top-4 -left-4 sm:top-2 sm:left-2 z-20 bg-[#F5B82E] text-[#063D29] w-28 h-28 rounded-full p-2 flex flex-col items-center justify-center text-center shadow-lg transform -rotate-6 hover:rotate-0 transition-transform border-2 border-white">
               <ShieldCheck className="w-5 h-5 mb-0.5 text-[#063D29]" />
               <span className="text-[11px] font-black leading-tight">
-                അമ്മയുടെ കൈപ്പുണ്യം
+                {badgeText}
               </span>
               <span className="text-[9px] font-bold uppercase tracking-tighter text-[#174E37]">
                 Amma&apos;s Touch
@@ -83,7 +110,7 @@ export default function HeroSection() {
             {/* Main composition image card */}
             <div className="relative w-full max-w-md aspect-[4/3] sm:aspect-square rounded-3xl overflow-hidden shadow-2xl border-4 border-white/80 bg-[#F8F1DF]">
               <Image
-                src="/images/banners/hero-pickles.jpg"
+                src={heroImage}
                 alt="Zezty Pickles Mango Pickle Composition with fresh mangoes and spices"
                 fill
                 priority

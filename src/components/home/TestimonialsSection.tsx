@@ -1,7 +1,7 @@
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Star, ArrowRight, Quote } from "lucide-react";
+import { Star, ArrowRight, Quote, Sparkles } from "lucide-react";
 
 export default function TestimonialsSection() {
   const testimonials = [
@@ -35,9 +35,10 @@ export default function TestimonialsSection() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-14">
           <div>
-            <span className="text-xs font-bold uppercase tracking-widest text-[#174E37] block mb-2">
-              HAPPY CUSTOMERS
-            </span>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#EFF1DC] text-[#174E37] rounded-full text-xs font-bold border border-[#E9E2CE] mb-2">
+              <Sparkles className="w-3.5 h-3.5 text-[#F5B82E]" />
+              <span>നല്ല രുചിക്ക് നല്ല വാക്കുകൾ • WORDS OF LOVE</span>
+            </div>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-black text-[#163D2D]">
               Real People. Real Love.
             </h2>
@@ -46,7 +47,7 @@ export default function TestimonialsSection() {
             href="/products"
             className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#174E37] hover:text-[#0B4A32] mt-4 md:mt-0 group"
           >
-            <span>View More Reviews</span>
+            <span>View All Pickles</span>
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </Link>
         </div>
@@ -78,7 +79,7 @@ export default function TestimonialsSection() {
                 </p>
               </div>
 
-              {/* Author Info */}
+              {/* Author Info (Explicitly identified as community demo review) */}
               <div className="flex items-center space-x-3.5 pt-6 mt-6 border-t border-[#E9E2CE]/70">
                 <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-[#E9E2CE] flex-shrink-0">
                   <Image
@@ -93,7 +94,9 @@ export default function TestimonialsSection() {
                   <h4 className="font-serif font-bold text-sm text-[#163D2D]">
                     {t.name}
                   </h4>
-                  <p className="text-xs text-[#68786B]">{t.location} • Verified Buyer</p>
+                  <p className="text-xs text-[#68786B]">
+                    {t.location} • <span className="text-[#174E37] font-medium">Demo Review</span>
+                  </p>
                 </div>
               </div>
             </div>

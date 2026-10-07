@@ -27,7 +27,7 @@ export default function BestsellersSection({ products }: BestsellersSectionProps
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-12">
           <div>
             <span className="text-xs font-bold uppercase tracking-widest text-[#174E37] block mb-2">
-              OUR BESTSELLERS
+              തനത് നാടൻ അച്ചാറുകൾ • OUR BESTSELLERS
             </span>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif font-black text-[#163D2D]">
               Signature Pickles, Crafted with Care

@@ -12,25 +12,34 @@ export const revalidate = 60; // Revalidate every minute
 
 export default async function HomePage() {
   let products: any[] = [];
+  let heroContent: any = null;
 
   try {
-    products = await prisma.product.findMany({
-      where: { isPublished: true },
-      orderBy: { price: "desc" },
-      take: 3,
-    });
+    const [dbProducts, dbHero] = await Promise.all([
+      prisma.product.findMany({
+        where: { isPublished: true },
+        orderBy: { price: "desc" },
+        take: 3,
+      }),
+      prisma.heroContent.findFirst({ where: { id: "default" } }),
+    ]);
+
+    products = dbProducts;
+    heroContent = dbHero;
   } catch (error) {
-    console.error("Failed to load products from database:", error);
+    console.error("Failed to load products/CMS from database:", error);
   }
 
   // Graceful fallback with Kerala Amma's touch
   const defaultProducts = [
     {
       id: "prod-mango-pickle",
-      name: "Kerala Mango Pickle • മാങ്ങാ അച്ചാർ",
+      name: "Mango Pickle",
+      malayalamName: "മാങ്ങ അച്ചാർ",
+      culturalTag: "നാടൻ രുചി",
       slug: "mango-pickle",
       shortDescription:
-        "Amma's classic blend of raw green mangoes, roasted fenugreek, and mustard oil. Tangy, spicy, truly nostalgic.",
+        "A classic blend of raw green mangoes, roasted fenugreek, and cold-pressed gingelly oil. Tangy, spicy, truly nostalgic.",
       price: 199,
       originalPrice: 249,
       image: "/images/products/mango-pickle.jpg",
@@ -39,10 +48,12 @@ export default async function HomePage() {
     },
     {
       id: "prod-garlic-pickle",
-      name: "Garlic Pickle • വെളുത്തുള്ളി അച്ചാർ",
+      name: "Garlic Pickle",
+      malayalamName: "വെളുത്തുള്ളി അച്ചാർ",
+      culturalTag: "തനിനാടൻ രുചി",
       slug: "garlic-pickle",
       shortDescription:
-        "Plump garlic cloves sautéed in cold-pressed oil and Amma's hand-crushed spices. Bold and aromatic.",
+        "Plump whole garlic cloves slow-sautéed in cold-pressed oil and Amma's hand-crushed roasted spices. Bold and aromatic.",
       price: 229,
       originalPrice: 279,
       image: "/images/products/garlic-pickle.jpg",
@@ -51,10 +62,12 @@ export default async function HomePage() {
     },
     {
       id: "prod-mixed-veg-pickle",
-      name: "Nadan Veg Pickle • പച്ചക്കറി അച്ചാർ",
+      name: "Mixed Veg Pickle",
+      malayalamName: "മിക്സഡ് വെജിറ്റബിൾ അച്ചാർ",
+      culturalTag: "മലബാറിന്റെ രുചി",
       slug: "mixed-veg-pickle",
       shortDescription:
-        "Wholesome Kerala Sadya style mix of seasonal veggies and aromatic spices. Pure homestyle flavor.",
+        "Wholesome Kerala Sadya style mix of crisp carrots, lime, cauliflower, and green chillies in aromatic spices.",
       price: 189,
       originalPrice: 239,
       image: "/images/products/mixed-veg-pickle.jpg",
@@ -67,7 +80,7 @@ export default async function HomePage() {
 
   return (
     <div className="flex flex-col">
-      <HeroSection />
+      <HeroSection content={heroContent} />
       <BenefitsStrip />
       <BestsellersSection products={displayProducts} />
       <StorySection />

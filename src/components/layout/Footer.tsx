@@ -62,9 +62,16 @@ export default function Footer() {
                 Zezty Pickles
               </span>
             </Link>
+
+            {/* Malayalam Brand Line */}
+            <div className="inline-block px-3 py-1 bg-[#0B4A32] text-[#F5B82E] rounded-full text-xs font-semibold border border-[#F5B82E]/20">
+              “നാടിന്റെ രുചി, വീട്ടിലെ സ്നേഹം”
+            </div>
+
             <p className="text-sm text-[#EFF1DC]/80 max-w-sm leading-relaxed">
-              Traditional Indian pickles made with love, for your everyday moments. Handcrafted in small batches with cold-pressed oils and pure heritage spices.
+              Traditional Kerala pickles made with love, for your everyday moments. Handcrafted in small batches with cold-pressed oils and pure heritage spices.
             </p>
+
             {/* Social Icons */}
             <div className="flex items-center space-x-3 pt-2">
               <a
@@ -93,6 +100,15 @@ export default function Footer() {
                 aria-label="YouTube"
               >
                 <Youtube className="w-4 h-4" />
+              </a>
+              <a
+                href="https://pinterest.com"
+                target="_blank"
+                rel="noreferrer"
+                className="w-9 h-9 rounded-full bg-[#0B4A32] flex items-center justify-center text-[#FFF9EC] hover:bg-[#F5B82E] hover:text-[#063D29] transition-colors"
+                aria-label="Pinterest"
+              >
+                <span className="text-xs font-bold font-serif">P</span>
               </a>
             </div>
           </div>
@@ -140,7 +156,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link href="/refund-policy" className="hover:text-[#F5B82E] transition-colors">
-                  Return & Refunds
+                  Returns & Refunds
                 </Link>
               </li>
               <li>
@@ -163,7 +179,7 @@ export default function Footer() {
 
           {/* Newsletter */}
           <div className="space-y-3">
-            <h4 className="font-serif font-bold text-base text-[#F5B82E]">Stay In Touch</h4>
+            <h4 className="font-serif font-bold text-base text-[#F5B82E]">Newsletter</h4>
             <p className="text-xs text-[#EFF1DC]/80">
               Subscribe for exclusive seasonal pickle batches, discounts, and traditional recipes.
             </p>
@@ -209,10 +225,8 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-[#EFF1DC]/60 gap-4">
           <p>© {new Date().getFullYear()} Zezty Pickles. All rights reserved.</p>
-          <div className="flex items-center space-x-4 font-serif text-[#F5B82E]/90 italic">
-            <span>Good Food.</span>
-            <span>Happy Moments.</span>
-            <span>Zezty Pickles.</span>
+          <div className="flex items-center space-x-3 font-serif text-[#F5B82E]/90 italic">
+            <span>The taste of our land, the warmth of home.</span>
           </div>
           <div className="flex space-x-4">
             <Link href="/privacy-policy" className="hover:text-[#FFF9EC]">Privacy Policy</Link>

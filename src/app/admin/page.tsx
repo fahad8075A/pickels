@@ -14,25 +14,41 @@ export default async function AdminPage() {
     redirect("/login");
   }
 
-  // Fetch real database records
-  const [totalOrders, totalProducts, totalCustomers, orders, products, categories] =
-    await Promise.all([
-      prisma.order.count(),
-      prisma.product.count(),
-      prisma.user.count({ where: { role: "CUSTOMER" } }),
-      prisma.order.findMany({
-        orderBy: { createdAt: "desc" },
-        include: {
-          items: true,
-          user: { select: { name: true, email: true } },
-        },
-      }),
-      prisma.product.findMany({
-        orderBy: { createdAt: "desc" },
-        include: { category: true },
-      }),
-      prisma.category.findMany(),
-    ]);
+  // Fetch real database records across e-commerce & CMS
+  const [
+    totalOrders,
+    totalProducts,
+    totalCustomers,
+    orders,
+    products,
+    categories,
+    heroContent,
+    storyContent,
+    promoBanner,
+    coupons,
+    contactMessages,
+  ] = await Promise.all([
+    prisma.order.count(),
+    prisma.product.count(),
+    prisma.user.count({ where: { role: "CUSTOMER" } }),
+    prisma.order.findMany({
+      orderBy: { createdAt: "desc" },
+      include: {
+        items: true,
+        user: { select: { name: true, email: true } },
+      },
+    }),
+    prisma.product.findMany({
+      orderBy: { createdAt: "desc" },
+      include: { category: true },
+    }),
+    prisma.category.findMany(),
+    prisma.heroContent.findFirst({ where: { id: "default" } }),
+    prisma.storyContent.findFirst({ where: { id: "default" } }),
+    prisma.promoBanner.findFirst({ where: { id: "default" } }),
+    prisma.coupon.findMany({ orderBy: { createdAt: "desc" } }),
+    prisma.contactMessage.findMany({ orderBy: { createdAt: "desc" }, take: 10 }),
+  ]);
 
   const paidOrders = await prisma.order.findMany({
     where: {
@@ -83,6 +99,13 @@ export default async function AdminPage() {
           initialOrders={orders}
           initialProducts={products}
           categories={categories}
+          initialCms={{
+            hero: heroContent,
+            story: storyContent,
+            promo: promoBanner,
+          }}
+          initialCoupons={coupons}
+          initialMessages={contactMessages}
         />
 
       </div>

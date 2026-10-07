@@ -31,8 +31,24 @@ RAZORPAY_WEBHOOK_SECRET="..."
    npx prisma migrate deploy
    npm run seed
    ```
-3. Build the application:
-   ```bash
-   npm run build
-   npm run start
-   ```
+### Deploying to Render (render.com)
+The repository contains a native `render.yaml` blueprint.
+
+1. **New Web Service**:
+   - Go to [dashboard.render.com](https://dashboard.render.com)
+   - Click **New +** -> **Blueprint** (or **Web Service**)
+   - Connect your GitHub repository `fahad8075A/pickels`
+2. **Build & Start Commands**:
+   - Build Command: `npm install && npm run build`
+   - Start Command: `npm start`
+3. **Environment Variables**:
+   - `NODE_ENV`: `production`
+   - `DATABASE_URL`: `file:./dev.db` (or Render PostgreSQL internal database URL)
+   - `NEXT_PUBLIC_APP_URL`: Your Render service URL (e.g., `https://zezty-pickles.onrender.com`)
+   - `JWT_SECRET`: Random 32+ character string
+   - `RAZORPAY_KEY_ID`: Your Razorpay Key ID
+   - `RAZORPAY_KEY_SECRET`: Your Razorpay Key Secret
+4. **Deploy**:
+   - Click **Apply** or **Create Web Service**.
+   - Render will build and deploy the Next.js application automatically on every git push!
+

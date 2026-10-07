@@ -3,17 +3,19 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import {
-  Package,
   ShoppingBag,
   Users,
   IndianRupee,
   AlertTriangle,
-  Clock,
   Plus,
   CheckCircle2,
   Trash2,
-  Edit2,
-  RefreshCw,
+  Edit3,
+  Layers,
+  Tag,
+  Mail,
+  Save,
+  Sparkles,
 } from "lucide-react";
 
 interface AdminDashboardClientProps {
@@ -28,6 +30,13 @@ interface AdminDashboardClientProps {
   initialOrders: any[];
   initialProducts: any[];
   categories: any[];
+  initialCms: {
+    hero: any;
+    story: any;
+    promo: any;
+  };
+  initialCoupons: any[];
+  initialMessages: any[];
 }
 
 export default function AdminDashboardClient({
@@ -35,10 +44,33 @@ export default function AdminDashboardClient({
   initialOrders,
   initialProducts,
   categories,
+  initialCms,
+  initialCoupons,
+  initialMessages,
 }: AdminDashboardClientProps) {
-  const [activeTab, setActiveTab] = useState<"overview" | "orders" | "products" | "inventory">("overview");
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "orders" | "products" | "inventory" | "cms" | "coupons" | "messages"
+  >("overview");
+
   const [orders, setOrders] = useState(initialOrders);
   const [products, setProducts] = useState(initialProducts);
+  const [coupons, setCoupons] = useState(initialCoupons);
+  const [cmsHero, setCmsHero] = useState({
+    heading: initialCms.hero?.heading || "A Little Tang, A Lot of Tradition.",
+    eyebrow: initialCms.hero?.eyebrow || "തനത് കേരള അച്ചാറുകൾ • AMMA'S TRADITIONAL KERALA PICKLES",
+    malayalamText: initialCms.hero?.malayalamText || "അമ്മയുടെ സ്നേഹവും കൈപ്പുണ്യവും നിറഞ്ഞ തനത് നാടൻ രുചി.",
+    description: initialCms.hero?.description || "Handcrafted Kerala pickles prepared with Amma's traditional recipes...",
+  });
+  const [cmsStory, setCmsStory] = useState({
+    heading: initialCms.story?.heading || "From Our Kitchen to Your Table",
+    eyebrow: initialCms.story?.eyebrow || "OUR STORY • അമ്മയുടെ കൈപ്പുണ്യം",
+    malayalamHeading: initialCms.story?.malayalamHeading || "നാടിന്റെ രുചി, വീട്ടിലെ സ്നേഹം",
+    description: initialCms.story?.description || "At Zezty Pickles, every jar begins with a memory...",
+  });
+
+  const [newCouponCode, setNewCouponCode] = useState("");
+  const [newCouponDiscount, setNewCouponDiscount] = useState(50);
+
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
 
@@ -92,13 +124,72 @@ export default function AdminDashboardClient({
       });
       if (res.ok) {
         setProducts(products.map((p) => (p.id === productId ? { ...p, stock: newStock } : p)));
-        setMessage({ text: "Inventory stock updated", type: "success" });
+        setMessage({ text: "Inventory stock updated successfully", type: "success" });
       }
     } catch {
       setMessage({ text: "Failed to update stock", type: "error" });
     } finally {
       setLoadingAction(null);
       setTimeout(() => setMessage(null), 3000);
+    }
+  };
+
+  const handleSaveCmsSection = async (section: "hero" | "story") => {
+    setLoadingAction(section);
+    try {
+      const dataToSave = section === "hero" ? cmsHero : cmsStory;
+      const res = await fetch("/api/admin/cms", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ section, data: dataToSave }),
+      });
+      if (res.ok) {
+        setMessage({ text: `${section.toUpperCase()} content saved & published to website!`, type: "success" });
+      } else {
+        setMessage({ text: "Failed to update CMS section", type: "error" });
+      }
+    } catch {
+      setMessage({ text: "Network error saving CMS", type: "error" });
+    } finally {
+      setLoadingAction(null);
+      setTimeout(() => setMessage(null), 3000);
+    }
+  };
+
+  const handleCreateCoupon = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCouponCode) return;
+    try {
+      const res = await fetch("/api/admin/cms", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          section: "coupon",
+          data: {
+            code: newCouponCode,
+            discountType: "FIXED",
+            discountValue: newCouponDiscount,
+            minOrderAmount: 299,
+          },
+        }),
+      });
+      if (res.ok) {
+        setCoupons([
+          {
+            id: `cp-${Date.now()}`,
+            code: newCouponCode.toUpperCase(),
+            discountType: "FIXED",
+            discountValue: newCouponDiscount,
+            minOrderAmount: 299,
+            isActive: true,
+          },
+          ...coupons,
+        ]);
+        setNewCouponCode("");
+        setMessage({ text: `Coupon ${newCouponCode.toUpperCase()} activated!`, type: "success" });
+      }
+    } catch {
+      setMessage({ text: "Error creating coupon", type: "error" });
     }
   };
 
@@ -128,7 +219,7 @@ export default function AdminDashboardClient({
       {/* Toast message */}
       {message && (
         <div
-          className={`p-4 rounded-2xl flex items-center gap-2 text-sm shadow ${
+          className={`p-4 rounded-2xl flex items-center gap-2 text-sm shadow transition-all ${
             message.type === "success"
               ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
               : "bg-red-50 text-red-800 border border-red-200"
@@ -143,43 +234,76 @@ export default function AdminDashboardClient({
       <div className="flex gap-2 border-b border-[#E9E2CE] pb-3 overflow-x-auto">
         <button
           onClick={() => setActiveTab("overview")}
-          className={`px-5 py-2.5 rounded-full text-xs font-bold transition-colors ${
+          className={`px-4 py-2.5 rounded-full text-xs font-bold transition-colors whitespace-nowrap ${
             activeTab === "overview"
               ? "bg-[#174E37] text-[#FFF9EC]"
               : "bg-white text-[#163D2D] hover:bg-[#EFF1DC]"
           }`}
         >
-          Dashboard Metrics
+          Overview & Metrics
         </button>
         <button
           onClick={() => setActiveTab("orders")}
-          className={`px-5 py-2.5 rounded-full text-xs font-bold transition-colors ${
+          className={`px-4 py-2.5 rounded-full text-xs font-bold transition-colors whitespace-nowrap ${
             activeTab === "orders"
               ? "bg-[#174E37] text-[#FFF9EC]"
               : "bg-white text-[#163D2D] hover:bg-[#EFF1DC]"
           }`}
         >
-          Customer Orders ({orders.length})
+          Orders ({orders.length})
         </button>
         <button
           onClick={() => setActiveTab("products")}
-          className={`px-5 py-2.5 rounded-full text-xs font-bold transition-colors ${
+          className={`px-4 py-2.5 rounded-full text-xs font-bold transition-colors whitespace-nowrap ${
             activeTab === "products"
               ? "bg-[#174E37] text-[#FFF9EC]"
               : "bg-white text-[#163D2D] hover:bg-[#EFF1DC]"
           }`}
         >
-          Catalog Products ({products.length})
+          Products ({products.length})
         </button>
         <button
           onClick={() => setActiveTab("inventory")}
-          className={`px-5 py-2.5 rounded-full text-xs font-bold transition-colors ${
+          className={`px-4 py-2.5 rounded-full text-xs font-bold transition-colors whitespace-nowrap ${
             activeTab === "inventory"
               ? "bg-[#174E37] text-[#FFF9EC]"
               : "bg-white text-[#163D2D] hover:bg-[#EFF1DC]"
           }`}
         >
           Stock & Inventory
+        </button>
+        <button
+          onClick={() => setActiveTab("cms")}
+          className={`px-4 py-2.5 rounded-full text-xs font-bold transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+            activeTab === "cms"
+              ? "bg-[#174E37] text-[#FFF9EC]"
+              : "bg-white text-[#163D2D] hover:bg-[#EFF1DC]"
+          }`}
+        >
+          <Layers className="w-3.5 h-3.5" />
+          <span>Website CMS</span>
+        </button>
+        <button
+          onClick={() => setActiveTab("coupons")}
+          className={`px-4 py-2.5 rounded-full text-xs font-bold transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+            activeTab === "coupons"
+              ? "bg-[#174E37] text-[#FFF9EC]"
+              : "bg-white text-[#163D2D] hover:bg-[#EFF1DC]"
+          }`}
+        >
+          <Tag className="w-3.5 h-3.5" />
+          <span>Coupons ({coupons.length})</span>
+        </button>
+        <button
+          onClick={() => setActiveTab("messages")}
+          className={`px-4 py-2.5 rounded-full text-xs font-bold transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+            activeTab === "messages"
+              ? "bg-[#174E37] text-[#FFF9EC]"
+              : "bg-white text-[#163D2D] hover:bg-[#EFF1DC]"
+          }`}
+        >
+          <Mail className="w-3.5 h-3.5" />
+          <span>Customer Inquiries</span>
         </button>
       </div>
 
@@ -205,7 +329,7 @@ export default function AdminDashboardClient({
               <div>
                 <p className="text-xs text-[#68786B] font-semibold uppercase">Total Orders</p>
                 <h3 className="font-serif font-black text-3xl text-[#163D2D] mt-1">
-                  {initialStats.totalOrders}
+                  {orders.length}
                 </h3>
                 <p className="text-[11px] text-[#68786B] mt-1">{initialStats.pendingOrders} pending</p>
               </div>
@@ -231,7 +355,7 @@ export default function AdminDashboardClient({
               <div>
                 <p className="text-xs text-[#68786B] font-semibold uppercase">Low Stock Alerts</p>
                 <h3 className="font-serif font-black text-3xl text-[#163D2D] mt-1">
-                  {initialStats.lowStockCount}
+                  {products.filter((p) => p.stock <= 20).length}
                 </h3>
                 <p className="text-[11px] text-red-600 mt-1">Products ≤ 20 jars</p>
               </div>
@@ -451,6 +575,209 @@ export default function AdminDashboardClient({
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 5: Live Website CMS Editor */}
+      {activeTab === "cms" && (
+        <div className="space-y-8">
+          {/* Hero Section Editor */}
+          <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#E9E2CE] shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-[#E9E2CE] pb-3">
+              <h3 className="font-serif font-bold text-xl text-[#163D2D] flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-[#F5B82E]" />
+                <span>Homepage Hero Banner CMS</span>
+              </h3>
+              <button
+                onClick={() => handleSaveCmsSection("hero")}
+                disabled={loadingAction === "hero"}
+                className="px-5 py-2 bg-[#174E37] text-white rounded-full text-xs font-bold flex items-center gap-1.5 shadow"
+              >
+                <Save className="w-4 h-4" /> Save Hero
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              <div>
+                <label className="font-bold block mb-1">Hero Main Heading (English)</label>
+                <input
+                  type="text"
+                  value={cmsHero.heading}
+                  onChange={(e) => setCmsHero({ ...cmsHero, heading: e.target.value })}
+                  className="w-full p-2.5 bg-[#FFF9EC] border rounded-xl"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold block mb-1">Eyebrow / Badge Text</label>
+                <input
+                  type="text"
+                  value={cmsHero.eyebrow}
+                  onChange={(e) => setCmsHero({ ...cmsHero, eyebrow: e.target.value })}
+                  className="w-full p-2.5 bg-[#FFF9EC] border rounded-xl"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="font-bold block mb-1">Supporting Malayalam Text</label>
+                <input
+                  type="text"
+                  value={cmsHero.malayalamText}
+                  onChange={(e) => setCmsHero({ ...cmsHero, malayalamText: e.target.value })}
+                  className="w-full p-2.5 bg-[#FFF9EC] border rounded-xl"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="font-bold block mb-1">Description Paragraph</label>
+                <textarea
+                  rows={2}
+                  value={cmsHero.description}
+                  onChange={(e) => setCmsHero({ ...cmsHero, description: e.target.value })}
+                  className="w-full p-2.5 bg-[#FFF9EC] border rounded-xl"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Story Section Editor */}
+          <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#E9E2CE] shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-[#E9E2CE] pb-3">
+              <h3 className="font-serif font-bold text-xl text-[#163D2D]">
+                Our Story & Heritage CMS
+              </h3>
+              <button
+                onClick={() => handleSaveCmsSection("story")}
+                disabled={loadingAction === "story"}
+                className="px-5 py-2 bg-[#174E37] text-white rounded-full text-xs font-bold flex items-center gap-1.5 shadow"
+              >
+                <Save className="w-4 h-4" /> Save Story
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              <div>
+                <label className="font-bold block mb-1">Story Main Heading</label>
+                <input
+                  type="text"
+                  value={cmsStory.heading}
+                  onChange={(e) => setCmsStory({ ...cmsStory, heading: e.target.value })}
+                  className="w-full p-2.5 bg-[#FFF9EC] border rounded-xl"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold block mb-1">Malayalam Heritage Tagline</label>
+                <input
+                  type="text"
+                  value={cmsStory.malayalamHeading}
+                  onChange={(e) => setCmsStory({ ...cmsStory, malayalamHeading: e.target.value })}
+                  className="w-full p-2.5 bg-[#FFF9EC] border rounded-xl"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="font-bold block mb-1">Story Body Paragraph</label>
+                <textarea
+                  rows={3}
+                  value={cmsStory.description}
+                  onChange={(e) => setCmsStory({ ...cmsStory, description: e.target.value })}
+                  className="w-full p-2.5 bg-[#FFF9EC] border rounded-xl"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 6: Coupons Management */}
+      {activeTab === "coupons" && (
+        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#E9E2CE] shadow-sm space-y-6">
+          <div className="flex items-center justify-between pb-3 border-b border-[#E9E2CE]">
+            <h3 className="font-serif font-bold text-xl text-[#163D2D]">
+              Promotional Coupons
+            </h3>
+          </div>
+
+          {/* Create Coupon Form */}
+          <form onSubmit={handleCreateCoupon} className="flex flex-wrap items-end gap-3 text-xs bg-[#FFF9EC] p-4 rounded-2xl border border-[#E9E2CE]">
+            <div>
+              <label className="font-bold block mb-1">Coupon Code</label>
+              <input
+                type="text"
+                required
+                placeholder="e.g. KERALA20"
+                value={newCouponCode}
+                onChange={(e) => setNewCouponCode(e.target.value)}
+                className="p-2.5 bg-white border rounded-xl font-mono uppercase"
+              />
+            </div>
+            <div>
+              <label className="font-bold block mb-1">Discount (₹)</label>
+              <input
+                type="number"
+                required
+                value={newCouponDiscount}
+                onChange={(e) => setNewCouponDiscount(Number(e.target.value))}
+                className="p-2.5 bg-white border rounded-xl w-24"
+              />
+            </div>
+            <button
+              type="submit"
+              className="px-5 py-2.5 bg-[#174E37] text-white rounded-xl font-bold flex items-center gap-1.5 shadow"
+            >
+              <Plus className="w-4 h-4" /> Create Coupon
+            </button>
+          </form>
+
+          {/* Coupons Table */}
+          <table className="w-full text-left text-xs">
+            <thead>
+              <tr className="border-b border-[#E9E2CE] text-[#68786B]">
+                <th className="pb-3">Code</th>
+                <th className="pb-3">Discount</th>
+                <th className="pb-3">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {coupons.map((c) => (
+                <tr key={c.id}>
+                  <td className="py-3 font-mono font-bold text-[#163D2D]">{c.code}</td>
+                  <td className="py-3 font-semibold text-[#174E37]">₹{c.discountValue} OFF</td>
+                  <td className="py-3">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                      Active
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Tab 7: Customer Inquiries */}
+      {activeTab === "messages" && (
+        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#E9E2CE] shadow-sm space-y-4">
+          <h3 className="font-serif font-bold text-xl text-[#163D2D]">
+            Customer Inquiries & Messages
+          </h3>
+          <div className="space-y-3">
+            {initialMessages && initialMessages.length > 0 ? (
+              initialMessages.map((msg: any) => (
+                <div key={msg.id} className="p-4 rounded-2xl bg-[#FFF9EC]/60 border border-[#E9E2CE] space-y-1 text-xs">
+                  <div className="flex justify-between font-bold text-[#163D2D]">
+                    <span>{msg.name} ({msg.email})</span>
+                    <span className="text-[#68786B] font-normal">{new Date(msg.createdAt).toLocaleDateString()}</span>
+                  </div>
+                  <p className="font-semibold text-[#174E37]">{msg.subject}</p>
+                  <p className="text-[#68786B]">{msg.message}</p>
+                </div>
+              ))
+            ) : (
+              <p className="text-xs text-[#68786B] italic">No customer inquiries yet.</p>
+            )}
           </div>
         </div>
       )}
