@@ -15,9 +15,9 @@ dist/
 # Environment and Database
 .env
 .env*.local
-dev.db
-dev.db-journal
+*.db-journal
 *.db
+!prisma/dev.db
 
 # Vercel
 .vercel/
