@@ -48,6 +48,7 @@ model Category {
 model Product {
   id               String      @id @default(uuid())
   name             String
+  malayalamName    String?
   slug             String      @unique
   shortDescription String
   fullDescription  String

@@ -421,8 +421,8 @@ export default function AdminDashboardClient({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ id: editingProductId, ...payload }),
         });
-        const data = await res.json();
-        if (res.ok) {
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.product) {
           setProducts(products.map((p) => (p.id === editingProductId ? data.product : p)));
           setShowNewProductModal(false);
           setSelectedImageFile(null);
@@ -438,8 +438,8 @@ export default function AdminDashboardClient({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
-        const data = await res.json();
-        if (res.ok) {
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.product) {
           setProducts([data.product, ...products]);
           setShowNewProductModal(false);
           setSelectedImageFile(null);
@@ -448,8 +448,9 @@ export default function AdminDashboardClient({
           setMessage({ text: data.error || "Product creation failed", type: "error" });
         }
       }
-    } catch {
-      setMessage({ text: "Error saving product", type: "error" });
+    } catch (err: any) {
+      console.error("Save product error:", err);
+      setMessage({ text: err?.message || "Error saving product", type: "error" });
     }
   };
 
