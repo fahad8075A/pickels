@@ -24,7 +24,7 @@ export const DEFAULT_PAYMENT_SETTINGS: BankPaymentSettings = {
   accountType: "Current Account",
   branch: "MG Road, Kochi, Kerala",
   instructions: "Scan the QR code or transfer to our direct bank account below. Enter your 12-digit UTR/UPI reference number to immediately confirm your order.",
-  razorpayKeyId: process.env.RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_mock_key",
+  razorpayKeyId: process.env.RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_live_Tl05XPZnqWHlxe",
   razorpayEnabled: true,
   directBankEnabled: true,
   codEnabled: true,

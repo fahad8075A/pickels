@@ -1,13 +1,23 @@
 import crypto from "crypto";
 
-const KEY_ID = process.env.RAZORPAY_KEY_ID || "";
-const KEY_SECRET = process.env.RAZORPAY_KEY_SECRET || "";
+export function getRazorpayCredentials() {
+  const keyId =
+    process.env.RAZORPAY_KEY_ID ||
+    process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ||
+    "rzp_live_Tl05XPZnqWHlxe";
+  const keySecret =
+    process.env.RAZORPAY_KEY_SECRET || "SAOAxeNNNQ0NeeaOsmTtz3FQ";
 
-export const isMockPaymentMode =
-  !KEY_ID ||
-  KEY_ID.includes("mock") ||
-  !KEY_SECRET ||
-  KEY_SECRET.includes("mock");
+  const isMock =
+    !keyId ||
+    keyId.includes("mock") ||
+    !keySecret ||
+    keySecret.includes("mock");
+
+  return { keyId, keySecret, isMock };
+}
+
+export const isMockPaymentMode = false; // Live payment enabled with user's live credentials
 
 export interface CreatePaymentOrderParams {
   amountInPaise: number;
@@ -16,22 +26,10 @@ export interface CreatePaymentOrderParams {
 }
 
 export async function createPaymentOrder(params: CreatePaymentOrderParams) {
-  if (isMockPaymentMode) {
-    return {
-      id: `order_mock_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-      entity: "order",
-      amount: params.amountInPaise,
-      amount_paid: 0,
-      amount_due: params.amountInPaise,
-      currency: params.currency,
-      receipt: params.receipt,
-      status: "created",
-      isMock: true,
-    };
-  }
+  const { keyId, keySecret } = getRazorpayCredentials();
 
-  // Real Razorpay API call
-  const authHeader = Buffer.from(`${KEY_ID}:${KEY_SECRET}`).toString("base64");
+  // Real live Razorpay API call
+  const authHeader = Buffer.from(`${keyId}:${keySecret}`).toString("base64");
   const response = await fetch("https://api.razorpay.com/v1/orders", {
     method: "POST",
     headers: {
@@ -39,15 +37,19 @@ export async function createPaymentOrder(params: CreatePaymentOrderParams) {
       Authorization: `Basic ${authHeader}`,
     },
     body: JSON.stringify({
-      amount: params.amountInPaise,
-      currency: params.currency,
+      amount: Math.round(params.amountInPaise),
+      currency: params.currency || "INR",
       receipt: params.receipt,
+      payment_capture: 1, // Automatically capture customer payments
     }),
   });
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
-    throw new Error(`Razorpay order creation failed: ${JSON.stringify(err)}`);
+    console.error("Razorpay API Error:", err);
+    throw new Error(
+      `Razorpay order creation failed: ${err.error?.description || JSON.stringify(err)}`
+    );
   }
 
   const data = await response.json();
@@ -59,17 +61,10 @@ export function verifyPaymentSignature(params: {
   razorpayPaymentId: string;
   razorpaySignature: string;
 }): boolean {
-  if (isMockPaymentMode) {
-    // In mock mode, allow test signature format or mock confirmation
-    return (
-      params.razorpaySignature === "mock_signature_valid" ||
-      params.razorpaySignature.startsWith("mock_") ||
-      params.razorpayOrderId.startsWith("order_mock_")
-    );
-  }
+  const { keySecret } = getRazorpayCredentials();
 
   const expectedSignature = crypto
-    .createHmac("sha256", KEY_SECRET)
+    .createHmac("sha256", keySecret)
     .update(`${params.razorpayOrderId}|${params.razorpayPaymentId}`)
     .digest("hex");
 
