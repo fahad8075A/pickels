@@ -47,7 +47,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   // Resilient fallback products for deployed environments
   const fallbackProducts = [
     {
-      id: "prod-mango-pickle",
+      id: "9a0d2700-5f7f-4475-95a8-6e64022a68d8",
       name: "Mango Pickle",
       malayalamName: "മാങ്ങ അച്ചാർ",
       culturalTag: "നാടൻ രുചി",
@@ -61,7 +61,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
       stock: 150,
     },
     {
-      id: "prod-garlic-pickle",
+      id: "c08cf40d-540b-42ce-9535-1aa0238ae270",
       name: "Garlic Pickle",
       malayalamName: "വെളുത്തുള്ളി അച്ചാർ",
       culturalTag: "തനിനാടൻ രുചി",
@@ -75,7 +75,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
       stock: 120,
     },
     {
-      id: "prod-mixed-veg-pickle",
+      id: "0585636a-cb1c-4908-9570-4ecaecf17501",
       name: "Mixed Veg Pickle",
       malayalamName: "മിക്സഡ് വെജിറ്റബിൾ അച്ചാർ",
       culturalTag: "മലബാറിന്റെ രുചി",

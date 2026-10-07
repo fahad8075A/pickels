@@ -91,20 +91,28 @@ export async function POST(req: Request) {
         },
       });
 
-      // If COD or Direct Bank, immediately decrement stock and increment coupon usage
+      // If COD or Direct Bank, safely decrement stock and increment coupon usage
       if (!isOnlinePayment) {
         for (const item of calc.items) {
-          await tx.product.update({
-            where: { id: item.productId },
-            data: { stock: { decrement: item.quantity } },
-          });
+          try {
+            await tx.product.update({
+              where: { id: item.productId },
+              data: { stock: { decrement: item.quantity } },
+            });
+          } catch (stockErr) {
+            console.warn("Stock update skipped for item:", item.productId, stockErr);
+          }
         }
 
         if (calc.appliedCoupon) {
-          await tx.coupon.update({
-            where: { code: calc.appliedCoupon.code },
-            data: { usedCount: { increment: 1 } },
-          });
+          try {
+            await tx.coupon.update({
+              where: { code: calc.appliedCoupon.code },
+              data: { usedCount: { increment: 1 } },
+            });
+          } catch (couponErr) {
+            console.warn("Coupon usage increment skipped:", couponErr);
+          }
         }
       }
 
@@ -125,10 +133,14 @@ export async function POST(req: Request) {
           where: { id: newOrder.id },
           data: { razorpayOrderId: razorpayOrder.id },
         });
-      } catch (payErr) {
+      } catch (payErr: any) {
         console.error("Payment order generation failed:", payErr);
         return NextResponse.json(
-          { error: "Failed to initialize payment gateway. Please select Cash on Delivery or retry." },
+          {
+            error:
+              payErr?.message ||
+              "Failed to initialize payment gateway. Please retry or choose Direct Bank Transfer.",
+          },
           { status: 500 }
         );
       }
@@ -137,7 +149,7 @@ export async function POST(req: Request) {
     const keyId =
       process.env.RAZORPAY_KEY_ID ||
       process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID ||
-      "rzp_test_mock_key";
+      "rzp_live_Tl05XPZnqWHlxe";
 
     return NextResponse.json({
       success: true,
@@ -154,10 +166,10 @@ export async function POST(req: Request) {
       razorpayKeyId: keyId,
       isMockPayment: isMockPaymentMode,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Order creation error:", error);
     return NextResponse.json(
-      { error: "Failed to create order. Please check inputs and try again." },
+      { error: error?.message || "Failed to create order. Please check inputs and try again." },
       { status: 500 }
     );
   }

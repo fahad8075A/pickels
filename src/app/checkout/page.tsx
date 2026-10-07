@@ -268,6 +268,13 @@ export default function CheckoutPage() {
               },
               theme: { color: "#174E37" },
             });
+            rzp.on("payment.failed", function (failResponse: any) {
+              setLoading(false);
+              setErrorMsg(
+                failResponse?.error?.description ||
+                  "Payment was declined by the bank or cancelled. Please try again."
+              );
+            });
             rzp.open();
           } else {
             // Fallback verification
