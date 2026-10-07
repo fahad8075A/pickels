@@ -7,7 +7,8 @@ import ProductDetailActions from "@/components/products/ProductDetailActions";
 import ProductCard from "@/components/products/ProductCard";
 import { ShieldCheck, Truck, Sparkles, Star, ChevronRight } from "lucide-react";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 interface ProductDetailPageProps {
   params: {
@@ -165,6 +166,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
                 alt={product.name}
                 fill
                 priority
+                unoptimized
                 className="object-cover hover:scale-105 transition-transform duration-500"
                 sizes="(max-width: 1024px) 100vw, 600px"
               />

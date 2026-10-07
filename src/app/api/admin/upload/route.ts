@@ -35,17 +35,24 @@ export async function POST(req: Request) {
       }
     }
 
+    // In serverless / cloud deployments (like Vercel) where filesystem is ephemeral and not served by CDN,
+    // return dataUrl so the image is stored in PostgreSQL and displayed on all devices.
+    const isCloudServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+    const base64 = buffer.toString("base64");
+    const mimeType = file.type || "image/jpeg";
+    const dataUrl = `data:${mimeType};base64,${base64}`;
+
+    if (isCloudServerless) {
+      return NextResponse.json({ success: true, url: dataUrl });
+    }
+
     try {
       await mkdir(uploadDir, { recursive: true });
       await writeFile(path.join(uploadDir, filename), buffer);
       const publicUrl = `/images/products/${filename}`;
       return NextResponse.json({ success: true, url: publicUrl });
     } catch (fsError) {
-      // In serverless environments where filesystem is read-only, return base64 data url
       console.warn("Filesystem write failed, using data URL fallback:", fsError);
-      const base64 = buffer.toString("base64");
-      const mimeType = file.type || "image/jpeg";
-      const dataUrl = `data:${mimeType};base64,${base64}`;
       return NextResponse.json({ success: true, url: dataUrl });
     }
   } catch (error: any) {

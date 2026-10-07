@@ -4,7 +4,8 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { SlidersHorizontal, Sparkles } from "lucide-react";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 interface ProductsPageProps {
   searchParams: {

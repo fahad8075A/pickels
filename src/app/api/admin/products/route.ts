@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 
@@ -83,6 +84,17 @@ export async function POST(req: Request) {
       },
     });
 
+    try {
+      revalidatePath("/");
+      revalidatePath("/products");
+      revalidatePath("/admin");
+      if (newProduct.slug) {
+        revalidatePath(`/products/${newProduct.slug}`);
+      }
+    } catch (revErr) {
+      console.warn("Path revalidation warning:", revErr);
+    }
+
     return NextResponse.json({ success: true, product: newProduct });
   } catch (error: any) {
     if (error.message === "FORBIDDEN_ADMIN_ONLY" || error.message === "UNAUTHORIZED") {
@@ -120,6 +132,17 @@ export async function PUT(req: Request) {
       },
     });
 
+    try {
+      revalidatePath("/");
+      revalidatePath("/products");
+      revalidatePath("/admin");
+      if (updated.slug) {
+        revalidatePath(`/products/${updated.slug}`);
+      }
+    } catch (revErr) {
+      console.warn("Path revalidation warning:", revErr);
+    }
+
     return NextResponse.json({ success: true, product: updated });
   } catch (error: any) {
     if (error.message === "FORBIDDEN_ADMIN_ONLY" || error.message === "UNAUTHORIZED") {
@@ -150,6 +173,14 @@ export async function DELETE(req: Request) {
         details: JSON.stringify({ id: deleted.id }),
       },
     });
+
+    try {
+      revalidatePath("/");
+      revalidatePath("/products");
+      revalidatePath("/admin");
+    } catch (revErr) {
+      console.warn("Path revalidation warning:", revErr);
+    }
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

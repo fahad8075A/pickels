@@ -8,7 +8,8 @@ import TestimonialsSection from "@/components/home/TestimonialsSection";
 import PromoBanner from "@/components/home/PromoBanner";
 import { prisma } from "@/lib/prisma";
 
-export const revalidate = 60; // Revalidate every minute
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function HomePage() {
   let products: any[] = [];
@@ -18,8 +19,7 @@ export default async function HomePage() {
     const [dbProducts, dbHero] = await Promise.all([
       prisma.product.findMany({
         where: { isPublished: true },
-        orderBy: { price: "desc" },
-        take: 3,
+        orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }],
       }),
       prisma.heroContent.findFirst({ where: { id: "default" } }),
     ]);
