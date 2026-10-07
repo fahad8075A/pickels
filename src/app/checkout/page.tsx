@@ -158,7 +158,12 @@ export default function CheckoutPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+          items: items.map((i) => ({
+            productId: i.productId,
+            quantity: i.quantity,
+            weight: i.weight,
+            price: i.price,
+          })),
           couponCode: couponCode || null,
           paymentMethod: formData.paymentMethod,
           utrNumber: formData.utrNumber.trim() || undefined,

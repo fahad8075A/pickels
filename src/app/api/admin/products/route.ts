@@ -32,6 +32,7 @@ export async function POST(req: Request) {
       image,
       ingredients,
       weight,
+      weightVariants,
       stock,
       isFeatured,
       isBestseller,
@@ -55,6 +56,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing name, slug, or price" }, { status: 400 });
     }
 
+    const formattedWeightVariants =
+      typeof weightVariants === "string"
+        ? weightVariants
+        : Array.isArray(weightVariants)
+        ? JSON.stringify(weightVariants)
+        : null;
+
     const newProduct = await prisma.product.create({
       data: {
         name,
@@ -68,6 +76,7 @@ export async function POST(req: Request) {
         image: image || "/images/products/mango-pickle.jpg",
         ingredients: ingredients || "Traditional Spices, Cold-Pressed Oil, Salt",
         weight: weight || "350g",
+        weightVariants: formattedWeightVariants,
         stock: Number(stock) || 50,
         isFeatured: Boolean(isFeatured),
         isBestseller: Boolean(isBestseller),
@@ -109,19 +118,31 @@ export async function PUT(req: Request) {
   try {
     const admin = await requireAdmin();
     const data = await req.json();
-    const { id, ...updateData } = data;
+    const { id, category, createdAt, updatedAt, orderItems, reviews, ...updateData } = data;
 
     if (!id) {
       return NextResponse.json({ error: "Product ID required" }, { status: 400 });
     }
 
     if (updateData.price) updateData.price = Number(updateData.price);
-    if (updateData.originalPrice) updateData.originalPrice = Number(updateData.originalPrice);
+    if (updateData.originalPrice !== undefined) {
+      updateData.originalPrice = updateData.originalPrice ? Number(updateData.originalPrice) : null;
+    }
     if (updateData.stock !== undefined) updateData.stock = Number(updateData.stock);
+
+    if (updateData.weightVariants !== undefined) {
+      updateData.weightVariants =
+        typeof updateData.weightVariants === "string"
+          ? updateData.weightVariants
+          : Array.isArray(updateData.weightVariants)
+          ? JSON.stringify(updateData.weightVariants)
+          : null;
+    }
 
     const updated = await prisma.product.update({
       where: { id },
       data: updateData,
+      include: { category: true },
     });
 
     await prisma.auditLog.create({

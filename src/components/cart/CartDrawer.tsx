@@ -117,7 +117,7 @@ export default function CartDrawer() {
                       {/* Quantity Controls */}
                       <div className="flex items-center border border-[#E9E2CE] rounded-lg bg-white">
                         <button
-                          onClick={() => updateQuantity(item.productId, item.quantity - 1)}
+                          onClick={() => updateQuantity(item.productId, item.quantity - 1, item.weight)}
                           className="p-1 hover:bg-[#EFF1DC] text-[#163D2D] rounded-l-md transition-colors"
                           aria-label="Decrease quantity"
                         >
@@ -127,7 +127,7 @@ export default function CartDrawer() {
                           {item.quantity}
                         </span>
                         <button
-                          onClick={() => updateQuantity(item.productId, item.quantity + 1)}
+                          onClick={() => updateQuantity(item.productId, item.quantity + 1, item.weight)}
                           className="p-1 hover:bg-[#EFF1DC] text-[#163D2D] rounded-r-md transition-colors"
                           aria-label="Increase quantity"
                         >
@@ -138,7 +138,7 @@ export default function CartDrawer() {
                   </div>
 
                   <button
-                    onClick={() => removeItem(item.productId)}
+                    onClick={() => removeItem(item.productId, item.weight)}
                     className="p-1.5 text-[#68786B] hover:text-red-600 rounded-lg transition-colors"
                     title="Remove item"
                     aria-label="Remove item"

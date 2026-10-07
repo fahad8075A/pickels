@@ -3,6 +3,8 @@ import { prisma } from "./prisma";
 export interface CartItemInput {
   productId: string;
   quantity: number;
+  weight?: string;
+  price?: number;
 }
 
 export interface ValidatedLineItem {
@@ -158,14 +160,29 @@ export async function calculateCartServer(
     }
 
     if (finalQty > 0) {
-      const lineTotal = product.price * finalQty;
+      let itemPrice = product.price;
+      if (item.weight && product.weightVariants) {
+        try {
+          const variants = JSON.parse(product.weightVariants);
+          const match = variants.find(
+            (v: any) => v.weight && v.weight.trim().toLowerCase() === item.weight?.trim().toLowerCase()
+          );
+          if (match && match.price) {
+            itemPrice = Number(match.price);
+          }
+        } catch {}
+      } else if (item.price && Number(item.price) > 0) {
+        itemPrice = Number(item.price);
+      }
+
+      const lineTotal = itemPrice * finalQty;
       subtotal += lineTotal;
       validatedItems.push({
         productId: product.id,
-        name: product.name,
+        name: item.weight ? `${product.name} (${item.weight})` : product.name,
         slug: product.slug,
         image: product.image,
-        price: product.price,
+        price: itemPrice,
         quantity: finalQty,
         lineTotal,
         availableStock: product.stock,

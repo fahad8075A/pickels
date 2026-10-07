@@ -59,6 +59,7 @@ model Product {
   image            String
   ingredients      String // Comma separated or detailed description
   weight           String // e.g. "350g", "400g"
+  weightVariants   String? // JSON array: [{"weight":"250g","price":130,"originalPrice":160},{"weight":"500g","price":260,"originalPrice":300}]
   stock            Int         @default(100)
   isFeatured       Boolean     @default(false)
   isBestseller     Boolean     @default(false)

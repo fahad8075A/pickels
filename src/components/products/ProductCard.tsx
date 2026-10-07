@@ -17,6 +17,7 @@ export interface ProductCardProps {
   originalPrice?: number | null;
   image: string;
   weight: string;
+  weightVariants?: string | Array<{ weight: string; price: number; originalPrice?: number }> | null;
   stock: number;
 }
 
@@ -31,10 +32,41 @@ export default function ProductCard({
   originalPrice,
   image,
   weight,
+  weightVariants,
   stock,
 }: ProductCardProps) {
   const { addItem } = useCartStore();
   const [isAdded, setIsAdded] = useState(false);
+
+  // Parse weight variants
+  const parsedVariants: Array<{ weight: string; price: number; originalPrice?: number }> = React.useMemo(() => {
+    if (!weightVariants) return [];
+    if (Array.isArray(weightVariants)) return weightVariants;
+    try {
+      const parsed = JSON.parse(weightVariants);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }, [weightVariants]);
+
+  const allVariants = React.useMemo(() => {
+    if (parsedVariants.length > 0) return parsedVariants;
+    return [{ weight: weight || "350g", price, originalPrice: originalPrice || undefined }];
+  }, [parsedVariants, weight, price, originalPrice]);
+
+  const [selectedVariant, setSelectedVariant] = useState(allVariants[0]);
+
+  // Keep selected variant in sync if props change
+  React.useEffect(() => {
+    if (allVariants.length > 0) {
+      setSelectedVariant(allVariants[0]);
+    }
+  }, [allVariants]);
+
+  const currentPrice = selectedVariant?.price ?? price;
+  const currentOriginalPrice = selectedVariant?.originalPrice ?? originalPrice;
+  const currentWeight = selectedVariant?.weight ?? weight;
 
   // Derive Malayalam title if not explicitly passed
   const displayMalayalam =
@@ -66,10 +98,10 @@ export default function ProductCard({
       productId: id,
       name: cleanEnglishName,
       slug,
-      price,
-      originalPrice: originalPrice ?? undefined,
+      price: currentPrice,
+      originalPrice: currentOriginalPrice ?? undefined,
       image,
-      weight,
+      weight: currentWeight,
     });
 
     setIsAdded(true);
@@ -121,10 +153,10 @@ export default function ProductCard({
         {/* Card Details */}
         <div className="p-6 space-y-3">
           <div className="flex items-center justify-between text-xs text-[#68786B]">
-            <span className="font-semibold uppercase tracking-wider">{weight}</span>
-            {originalPrice && originalPrice > price && (
+            <span className="font-semibold uppercase tracking-wider">{currentWeight}</span>
+            {currentOriginalPrice && currentOriginalPrice > currentPrice && (
               <span className="text-emerald-800 font-bold bg-[#EFF1DC] px-2 py-0.5 rounded border border-[#E9E2CE]">
-                Save ₹{originalPrice - price}
+                Save ₹{currentOriginalPrice - currentPrice}
               </span>
             )}
           </div>
@@ -145,6 +177,39 @@ export default function ProductCard({
           <p className="text-xs sm:text-sm text-[#68786B] line-clamp-2 leading-relaxed">
             {shortDescription}
           </p>
+
+          {/* Gram / Weight Variant Selector */}
+          {allVariants.length > 1 && (
+            <div className="pt-2">
+              <span className="text-[10px] font-bold text-[#68786B] uppercase tracking-wider block mb-1.5">
+                Choose Jar Size:
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {allVariants.map((v) => {
+                  const isSelected = selectedVariant?.weight === v.weight;
+                  return (
+                    <button
+                      key={v.weight}
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedVariant(v);
+                      }}
+                      className={`px-3 py-1 rounded-full text-xs font-bold transition-all border ${
+                        isSelected
+                          ? "bg-[#174E37] text-[#FFF9EC] border-[#174E37] shadow-sm scale-105"
+                          : "bg-white text-[#163D2D] border-[#E9E2CE] hover:border-[#174E37]/60"
+                      }`}
+                    >
+                      <span>{v.weight}</span>
+                      <span className="ml-1 opacity-90 text-[11px] font-semibold">₹{v.price}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -152,11 +217,11 @@ export default function ProductCard({
       <div className="p-6 pt-0 border-t border-[#E9E2CE]/60 mt-4 flex items-center justify-between">
         <div className="flex items-baseline gap-2">
           <span className="font-serif font-black text-2xl text-[#163D2D]">
-            ₹{price}
+            ₹{currentPrice}
           </span>
-          {originalPrice && (
+          {currentOriginalPrice && (
             <span className="text-sm text-[#68786B] line-through">
-              ₹{originalPrice}
+              ₹{currentOriginalPrice}
             </span>
           )}
         </div>

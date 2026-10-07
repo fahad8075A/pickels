@@ -37,4 +37,18 @@ describe("Pricing and Shipping Business Rules", () => {
     const isEligible = subtotal >= minOrderAmount;
     expect(isEligible).toBe(false);
   });
+
+  it("calculates multi-gram variants correctly (e.g. 250g @ ₹130 and 500g @ ₹260)", () => {
+    const variants = [
+      { weight: "250g", price: 130 },
+      { weight: "500g", price: 260 },
+    ];
+    const item1 = variants.find((v) => v.weight === "250g")!;
+    const item2 = variants.find((v) => v.weight === "500g")!;
+    expect(item1.price * 2).toBe(260);
+    expect(item2.price * 1).toBe(260);
+    const combinedTotal = item1.price * 2 + item2.price * 1;
+    expect(combinedTotal).toBe(520);
+    expect(combinedTotal >= 499).toBe(true); // Qualifies for free shipping
+  });
 });

@@ -20,8 +20,8 @@ interface CartStore {
   closeCart: () => void;
   toggleCart: () => void;
   addItem: (product: Omit<CartItem, "quantity">, quantity?: number) => void;
-  removeItem: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
+  removeItem: (productId: string, weight?: string) => void;
+  updateQuantity: (productId: string, quantity: number, weight?: string) => void;
   clearCart: () => void;
   setCouponCode: (code: string) => void;
   getTotalItems: () => number;
@@ -41,11 +41,14 @@ export const useCartStore = create<CartStore>()(
 
       addItem: (product, quantity = 1) => {
         set((state) => {
-          const existing = state.items.find((i) => i.productId === product.productId);
+          const itemWeight = product.weight || "Standard";
+          const existing = state.items.find(
+            (i) => i.productId === product.productId && (i.weight || "Standard") === itemWeight
+          );
           if (existing) {
             return {
               items: state.items.map((i) =>
-                i.productId === product.productId
+                i.productId === product.productId && (i.weight || "Standard") === itemWeight
                   ? { ...i, quantity: i.quantity + quantity }
                   : i
               ),
@@ -53,26 +56,30 @@ export const useCartStore = create<CartStore>()(
             };
           }
           return {
-            items: [...state.items, { ...product, quantity }],
+            items: [...state.items, { ...product, weight: itemWeight, quantity }],
             isOpen: true,
           };
         });
       },
 
-      removeItem: (productId) => {
+      removeItem: (productId, weight?: string) => {
         set((state) => ({
-          items: state.items.filter((i) => i.productId !== productId),
+          items: state.items.filter(
+            (i) => !(i.productId === productId && (!weight || i.weight === weight))
+          ),
         }));
       },
 
-      updateQuantity: (productId, quantity) => {
+      updateQuantity: (productId, quantity, weight?: string) => {
         if (quantity <= 0) {
-          get().removeItem(productId);
+          get().removeItem(productId, weight);
           return;
         }
         set((state) => ({
           items: state.items.map((i) =>
-            i.productId === productId ? { ...i, quantity } : i
+            i.productId === productId && (!weight || i.weight === weight)
+              ? { ...i, quantity }
+              : i
           ),
         }));
       },

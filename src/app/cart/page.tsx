@@ -152,7 +152,7 @@ export default function CartPage() {
                 {/* Quantity Controls */}
                 <div className="flex items-center border-2 border-[#E9E2CE] rounded-full px-3 py-1 bg-[#FFF9EC]">
                   <button
-                    onClick={() => updateQuantity(item.productId, item.quantity - 1)}
+                    onClick={() => updateQuantity(item.productId, item.quantity - 1, item.weight)}
                     className="p-1 text-[#163D2D] hover:text-[#174E37]"
                     aria-label="Decrease quantity"
                   >
@@ -162,7 +162,7 @@ export default function CartPage() {
                     {item.quantity}
                   </span>
                   <button
-                    onClick={() => updateQuantity(item.productId, item.quantity + 1)}
+                    onClick={() => updateQuantity(item.productId, item.quantity + 1, item.weight)}
                     className="p-1 text-[#163D2D] hover:text-[#174E37]"
                     aria-label="Increase quantity"
                   >
@@ -179,7 +179,7 @@ export default function CartPage() {
 
                 {/* Remove Button */}
                 <button
-                  onClick={() => removeItem(item.productId)}
+                  onClick={() => removeItem(item.productId, item.weight)}
                   className="p-2 text-[#68786B] hover:text-red-700 rounded-lg transition-colors"
                   aria-label="Remove item"
                 >

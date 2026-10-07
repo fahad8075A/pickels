@@ -12,6 +12,7 @@ interface ProductItem {
   originalPrice?: number | null;
   image: string;
   weight: string;
+  weightVariants?: string | null;
   stock: number;
 }
 
@@ -42,7 +43,7 @@ export default function BestsellersSection({ products }: BestsellersSectionProps
           </Link>
         </div>
 
-        {/* 3 Product Cards Grid */}
+        {/* Product Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {products.map((product) => (
             <ProductCard
@@ -55,6 +56,7 @@ export default function BestsellersSection({ products }: BestsellersSectionProps
               originalPrice={product.originalPrice}
               image={product.image}
               weight={product.weight}
+              weightVariants={product.weightVariants}
               stock={product.stock}
             />
           ))}

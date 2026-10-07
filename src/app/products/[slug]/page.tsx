@@ -236,6 +236,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
                 originalPrice: product.originalPrice,
                 image: product.image,
                 weight: product.weight,
+                weightVariants: product.weightVariants,
                 stock: product.stock,
               }}
             />

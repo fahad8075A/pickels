@@ -99,13 +99,20 @@ export default function AdminDashboardClient({
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
   const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
 
-  // New product form modal state with custom image file support
+  interface WeightVariantItem {
+    weight: string;
+    price: number;
+    originalPrice?: number;
+  }
+
+  // Product form modal state (Create & Edit)
   const [showNewProductModal, setShowNewProductModal] = useState(false);
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string>("/images/products/mango-pickle.jpg");
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
-  const [newProductData, setNewProductData] = useState({
+  const initialProductState = {
     name: "",
     malayalamName: "",
     slug: "",
@@ -113,13 +120,80 @@ export default function AdminDashboardClient({
     fullDescription: "",
     sku: "",
     categoryId: categories[0]?.id || "",
-    price: 199,
-    originalPrice: 249,
+    price: 130,
+    originalPrice: 160,
     stock: 50,
-    weight: "350g",
-    ingredients: "Spices, Mustard Oil, Salt",
+    weight: "250g",
+    ingredients: "Spices, Cold-Pressed Oil, Salt",
     image: "/images/products/mango-pickle.jpg",
-  });
+  };
+
+  const [newProductData, setNewProductData] = useState(initialProductState);
+  const [productVariants, setProductVariants] = useState<WeightVariantItem[]>([
+    { weight: "250g", price: 130, originalPrice: 160 },
+    { weight: "500g", price: 260, originalPrice: 300 },
+  ]);
+
+  const handleOpenAddModal = () => {
+    setEditingProductId(null);
+    setNewProductData(initialProductState);
+    setProductVariants([
+      { weight: "250g", price: 130, originalPrice: 160 },
+      { weight: "500g", price: 260, originalPrice: 300 },
+    ]);
+    setImagePreviewUrl("/images/products/mango-pickle.jpg");
+    setSelectedImageFile(null);
+    setShowNewProductModal(true);
+  };
+
+  const handleOpenEditModal = (p: any) => {
+    setEditingProductId(p.id);
+    let parsedVariants: WeightVariantItem[] = [];
+    if (p.weightVariants) {
+      try {
+        parsedVariants = typeof p.weightVariants === "string" ? JSON.parse(p.weightVariants) : p.weightVariants;
+      } catch {}
+    }
+    if (!parsedVariants || parsedVariants.length === 0) {
+      parsedVariants = [{ weight: p.weight || "250g", price: p.price, originalPrice: p.originalPrice || undefined }];
+    }
+    setProductVariants(parsedVariants);
+    setNewProductData({
+      name: p.name || "",
+      malayalamName: p.malayalamName || "",
+      slug: p.slug || "",
+      shortDescription: p.shortDescription || "",
+      fullDescription: p.fullDescription || p.shortDescription || "",
+      sku: p.sku || "",
+      categoryId: p.categoryId || categories[0]?.id || "",
+      price: p.price || 130,
+      originalPrice: p.originalPrice || 160,
+      stock: p.stock ?? 50,
+      weight: p.weight || "250g",
+      ingredients: p.ingredients || "Spices, Cold-Pressed Oil, Salt",
+      image: p.image || "/images/products/mango-pickle.jpg",
+    });
+    setImagePreviewUrl(p.image || "/images/products/mango-pickle.jpg");
+    setSelectedImageFile(null);
+    setShowNewProductModal(true);
+  };
+
+  const handleAddVariant = (weight = "250g", price = 130) => {
+    setProductVariants((prev) => [
+      ...prev,
+      { weight, price, originalPrice: Math.round(price * 1.25) },
+    ]);
+  };
+
+  const handleUpdateVariant = (index: number, field: "weight" | "price" | "originalPrice", value: any) => {
+    setProductVariants((prev) =>
+      prev.map((v, i) => (i === index ? { ...v, [field]: value } : v))
+    );
+  };
+
+  const handleRemoveVariant = (index: number) => {
+    setProductVariants((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -300,7 +374,7 @@ export default function AdminDashboardClient({
     }
   };
 
-  const handleCreateProduct = async (e: React.FormEvent) => {
+  const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       let finalImageUrl = newProductData.image;
@@ -326,25 +400,76 @@ export default function AdminDashboardClient({
         }
       }
 
-      const res = await fetch("/api/admin/products", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...newProductData,
-          image: finalImageUrl,
-        }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setProducts([data.product, ...products]);
-        setShowNewProductModal(false);
-        setSelectedImageFile(null);
-        setMessage({ text: "New pickle product added successfully with photo!", type: "success" });
+      // Sync base weight & price from the first variant if variants exist
+      const effectiveWeight = productVariants[0]?.weight || newProductData.weight || "250g";
+      const effectivePrice = productVariants[0]?.price || newProductData.price || 130;
+      const effectiveOriginalPrice = productVariants[0]?.originalPrice || newProductData.originalPrice;
+
+      const payload = {
+        ...newProductData,
+        image: finalImageUrl,
+        weight: effectiveWeight,
+        price: effectivePrice,
+        originalPrice: effectiveOriginalPrice,
+        weightVariants: productVariants,
+      };
+
+      if (editingProductId) {
+        // Edit existing product
+        const res = await fetch("/api/admin/products", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: editingProductId, ...payload }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setProducts(products.map((p) => (p.id === editingProductId ? data.product : p)));
+          setShowNewProductModal(false);
+          setSelectedImageFile(null);
+          setEditingProductId(null);
+          setMessage({ text: `Pickle "${data.product.name}" updated successfully!`, type: "success" });
+        } else {
+          setMessage({ text: data.error || "Failed to update product", type: "error" });
+        }
       } else {
-        setMessage({ text: data.error || "Product creation failed", type: "error" });
+        // Create new product
+        const res = await fetch("/api/admin/products", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setProducts([data.product, ...products]);
+          setShowNewProductModal(false);
+          setSelectedImageFile(null);
+          setMessage({ text: "New pickle product added with gram variants!", type: "success" });
+        } else {
+          setMessage({ text: data.error || "Product creation failed", type: "error" });
+        }
       }
     } catch {
-      setMessage({ text: "Error creating product", type: "error" });
+      setMessage({ text: "Error saving product", type: "error" });
+    }
+  };
+
+  const handleDeleteProduct = async (productId: string, productName: string) => {
+    if (!confirm(`Are you sure you want to delete "${productName}" from the store catalog?`)) return;
+    setLoadingAction(productId);
+    try {
+      const res = await fetch(`/api/admin/products?id=${productId}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setProducts(products.filter((p) => p.id !== productId));
+        setMessage({ text: `Product "${productName}" removed from catalog`, type: "success" });
+      } else {
+        setMessage({ text: "Failed to delete product", type: "error" });
+      }
+    } catch {
+      setMessage({ text: "Error deleting product", type: "error" });
+    } finally {
+      setLoadingAction(null);
     }
   };
 
@@ -687,11 +812,7 @@ export default function AdminDashboardClient({
               Products Catalog
             </h3>
             <button
-              onClick={() => {
-                setImagePreviewUrl("/images/products/mango-pickle.jpg");
-                setSelectedImageFile(null);
-                setShowNewProductModal(true);
-              }}
+              onClick={handleOpenAddModal}
               className="px-4 py-2 bg-[#174E37] text-[#FFF9EC] rounded-full text-xs font-semibold flex items-center gap-1.5 shadow"
             >
               <Plus className="w-4 h-4" /> Add New Pickle
@@ -699,22 +820,72 @@ export default function AdminDashboardClient({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {products.map((p) => (
-              <div
-                key={p.id}
-                className="p-4 rounded-2xl border border-[#E9E2CE] bg-[#FFF9EC]/40 space-y-3"
-              >
-                <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-white border border-[#E9E2CE]">
-                  <Image src={p.image} alt={p.name} fill className="object-cover" />
+            {products.map((p) => {
+              let variantsList: any[] = [];
+              if (p.weightVariants) {
+                try {
+                  variantsList = typeof p.weightVariants === "string" ? JSON.parse(p.weightVariants) : p.weightVariants;
+                } catch {}
+              }
+
+              return (
+                <div
+                  key={p.id}
+                  className="p-4 rounded-2xl border border-[#E9E2CE] bg-[#FFF9EC]/40 space-y-3 flex flex-col justify-between"
+                >
+                  <div className="space-y-3">
+                    <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-white border border-[#E9E2CE]">
+                      <Image src={p.image} alt={p.name} fill unoptimized className="object-cover" />
+                    </div>
+                    <div>
+                      <h4 className="font-serif font-bold text-base text-[#163D2D]">{p.name}</h4>
+                      <p className="text-xs text-[#68786B] font-mono">SKU: {p.sku}</p>
+                      <p className="font-serif font-bold text-lg text-[#174E37] mt-1">₹{p.price}</p>
+                      <p className="text-xs text-[#68786B]">In Stock: <strong>{p.stock}</strong> jars</p>
+
+                      {/* Display Gram Variants */}
+                      {variantsList && variantsList.length > 0 && (
+                        <div className="mt-2 pt-2 border-t border-[#E9E2CE]/70">
+                          <span className="text-[10px] uppercase font-bold text-[#68786B] block mb-1">
+                            Available Grams:
+                          </span>
+                          <div className="flex flex-wrap gap-1">
+                            {variantsList.map((v: any, idx: number) => (
+                              <span
+                                key={idx}
+                                className="px-2 py-0.5 bg-[#EFF1DC] text-[#174E37] border border-[#E9E2CE] rounded-md text-[10px] font-bold"
+                              >
+                                {v.weight}: ₹{v.price}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Edit & Delete Action Buttons */}
+                  <div className="pt-3 border-t border-[#E9E2CE] flex items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEditModal(p)}
+                      className="flex-1 py-2 px-3 bg-[#174E37] text-[#FFF9EC] rounded-xl text-xs font-bold hover:bg-[#0B4A32] shadow-sm flex items-center justify-center gap-1.5 transition"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" /> Edit Product
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteProduct(p.id, p.name)}
+                      disabled={loadingAction === p.id}
+                      className="py-2 px-3 bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition disabled:opacity-50"
+                      title="Delete Product"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="font-serif font-bold text-base text-[#163D2D]">{p.name}</h4>
-                  <p className="text-xs text-[#68786B] font-mono">SKU: {p.sku}</p>
-                  <p className="font-serif font-bold text-lg text-[#174E37] mt-1">₹{p.price}</p>
-                  <p className="text-xs text-[#68786B]">In Stock: <strong>{p.stock}</strong> jars</p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -1291,8 +1462,14 @@ export default function AdminDashboardClient({
           <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-8 border border-[#E9E2CE] shadow-2xl space-y-5 my-8">
             <div className="flex items-center justify-between border-b border-[#E9E2CE] pb-3">
               <div>
-                <h3 className="font-serif font-bold text-2xl text-[#163D2D]">Add New Pickle Product</h3>
-                <p className="text-xs text-[#68786B]">Upload pickle photo from your device or select from catalog</p>
+                <h3 className="font-serif font-bold text-2xl text-[#163D2D]">
+                  {editingProductId ? "Edit Pickle Product" : "Add New Pickle Product"}
+                </h3>
+                <p className="text-xs text-[#68786B]">
+                  {editingProductId
+                    ? "Update product details, gram weight options, and live pricing"
+                    : "Upload pickle photo from your device, configure gram variants and pricing"}
+                </p>
               </div>
               <button
                 type="button"
@@ -1303,7 +1480,7 @@ export default function AdminDashboardClient({
               </button>
             </div>
 
-            <form onSubmit={handleCreateProduct} className="space-y-4 text-xs">
+            <form onSubmit={handleSaveProduct} className="space-y-4 text-xs">
               
               {/* Product Photo Upload Section */}
               <div className="space-y-2 p-4 bg-[#FFF9EC] rounded-2xl border border-[#E9E2CE]">
@@ -1318,6 +1495,7 @@ export default function AdminDashboardClient({
                       src={imagePreviewUrl}
                       alt="Product preview"
                       fill
+                      unoptimized
                       className="object-cover"
                     />
                   </div>
@@ -1395,7 +1573,7 @@ export default function AdminDashboardClient({
                       setNewProductData({
                         ...newProductData,
                         name: e.target.value,
-                        slug: e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+                        slug: editingProductId ? newProductData.slug : e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
                       })
                     }
                     className="w-full p-2.5 bg-[#FFF9EC] border rounded-xl"
@@ -1439,29 +1617,10 @@ export default function AdminDashboardClient({
                 </div>
               </div>
 
-              {/* Price, Stock, Weight */}
-              <div className="grid grid-cols-3 gap-3">
+              {/* Base Price & Stock */}
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold block mb-1">Price (₹)</label>
-                  <input
-                    type="number"
-                    required
-                    value={newProductData.price}
-                    onChange={(e) => setNewProductData({ ...newProductData, price: Number(e.target.value) })}
-                    className="w-full p-2.5 bg-[#FFF9EC] border rounded-xl"
-                  />
-                </div>
-                <div>
-                  <label className="font-bold block mb-1">MRP Price (₹)</label>
-                  <input
-                    type="number"
-                    value={newProductData.originalPrice}
-                    onChange={(e) => setNewProductData({ ...newProductData, originalPrice: Number(e.target.value) })}
-                    className="w-full p-2.5 bg-[#FFF9EC] border rounded-xl"
-                  />
-                </div>
-                <div>
-                  <label className="font-bold block mb-1">Stock (Jars)</label>
+                  <label className="font-bold block mb-1">Total Stock (Jars)</label>
                   <input
                     type="number"
                     required
@@ -1470,29 +1629,140 @@ export default function AdminDashboardClient({
                     className="w-full p-2.5 bg-[#FFF9EC] border rounded-xl"
                   />
                 </div>
-              </div>
-
-              {/* Weight & Ingredients */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold block mb-1">Net Weight</label>
+                  <label className="font-bold block mb-1">Default Net Weight</label>
                   <input
                     type="text"
                     value={newProductData.weight}
                     onChange={(e) => setNewProductData({ ...newProductData, weight: e.target.value })}
+                    placeholder="e.g. 250g or 350g"
                     className="w-full p-2.5 bg-[#FFF9EC] border rounded-xl"
                   />
+                </div>
+              </div>
+
+              {/* WEIGHT / GRAM OPTIONS SECTION (e.g. 250g - 130, 500g - 260) */}
+              <div className="p-4 bg-[#EFF1DC]/60 rounded-2xl border-2 border-[#174E37]/20 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E9E2CE] pb-2">
+                  <div>
+                    <label className="font-bold text-sm text-[#163D2D] flex items-center gap-1.5">
+                      <Sparkles className="w-4 h-4 text-[#F5B82E]" />
+                      <span>Different Grams & Pricing (Size Variants)</span>
+                    </label>
+                    <p className="text-[11px] text-[#68786B]">
+                      Add sizes like 250g - ₹130, 500g - ₹260, 1kg - ₹500 for customer selection.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleAddVariant("250g", 130)}
+                    className="px-3 py-1 bg-[#174E37] text-white rounded-full text-[11px] font-bold hover:bg-[#0B4A32] flex items-center gap-1 shadow-sm w-fit"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add Size
+                  </button>
                 </div>
 
-                <div>
-                  <label className="font-bold block mb-1">Ingredients</label>
-                  <input
-                    type="text"
-                    value={newProductData.ingredients}
-                    onChange={(e) => setNewProductData({ ...newProductData, ingredients: e.target.value })}
-                    className="w-full p-2.5 bg-[#FFF9EC] border rounded-xl"
-                  />
+                {/* Quick Preset Buttons */}
+                <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+                  <span className="text-[#68786B] font-semibold">Quick Presets:</span>
+                  <button
+                    type="button"
+                    onClick={() => handleAddVariant("250g", 130)}
+                    className="px-2 py-0.5 bg-white border border-[#E9E2CE] hover:border-[#174E37] rounded font-semibold text-[#163D2D]"
+                  >
+                    + 250g (₹130)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAddVariant("500g", 260)}
+                    className="px-2 py-0.5 bg-white border border-[#E9E2CE] hover:border-[#174E37] rounded font-semibold text-[#163D2D]"
+                  >
+                    + 500g (₹260)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAddVariant("1kg", 500)}
+                    className="px-2 py-0.5 bg-white border border-[#E9E2CE] hover:border-[#174E37] rounded font-semibold text-[#163D2D]"
+                  >
+                    + 1kg (₹500)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAddVariant("350g", 199)}
+                    className="px-2 py-0.5 bg-white border border-[#E9E2CE] hover:border-[#174E37] rounded font-semibold text-[#163D2D]"
+                  >
+                    + 350g (₹199)
+                  </button>
                 </div>
+
+                {/* Variants Rows */}
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                  {productVariants.length === 0 ? (
+                    <p className="text-center py-3 text-xs text-[#68786B] italic">
+                      No custom weight options added yet. Default single size will be used.
+                    </p>
+                  ) : (
+                    productVariants.map((variant, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center gap-2 bg-white p-2 rounded-xl border border-[#E9E2CE] shadow-sm"
+                      >
+                        <div className="flex-1">
+                          <label className="text-[10px] font-bold text-[#68786B] block">Weight / Gram</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. 250g"
+                            value={variant.weight}
+                            onChange={(e) => handleUpdateVariant(idx, "weight", e.target.value)}
+                            className="w-full p-1.5 bg-[#FFF9EC] border rounded-lg text-xs font-bold text-[#163D2D]"
+                          />
+                        </div>
+                        <div className="w-24">
+                          <label className="text-[10px] font-bold text-[#68786B] block">Price (₹)</label>
+                          <input
+                            type="number"
+                            required
+                            placeholder="130"
+                            value={variant.price}
+                            onChange={(e) => handleUpdateVariant(idx, "price", Number(e.target.value))}
+                            className="w-full p-1.5 bg-[#FFF9EC] border rounded-lg text-xs font-bold text-[#174E37]"
+                          />
+                        </div>
+                        <div className="w-24">
+                          <label className="text-[10px] font-bold text-[#68786B] block">MRP (₹)</label>
+                          <input
+                            type="number"
+                            placeholder="160"
+                            value={variant.originalPrice || ""}
+                            onChange={(e) => handleUpdateVariant(idx, "originalPrice", Number(e.target.value))}
+                            className="w-full p-1.5 bg-[#FFF9EC] border rounded-lg text-xs text-[#68786B]"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveVariant(idx)}
+                          className="p-1.5 mt-3.5 text-red-600 hover:bg-red-50 rounded-lg transition"
+                          title="Remove option"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Ingredients */}
+              <div>
+                <label className="font-bold block mb-1">Ingredients</label>
+                <input
+                  type="text"
+                  value={newProductData.ingredients}
+                  onChange={(e) => setNewProductData({ ...newProductData, ingredients: e.target.value })}
+                  placeholder="e.g. Fresh Mangoes, Cold-Pressed Mustard Oil, Handcrafted Spices, Salt"
+                  className="w-full p-2.5 bg-[#FFF9EC] border rounded-xl"
+                />
               </div>
 
               {/* Description */}
@@ -1518,9 +1788,13 @@ export default function AdminDashboardClient({
                 <button
                   type="submit"
                   disabled={isUploadingImage}
-                  className="px-7 py-2.5 rounded-full bg-[#174E37] text-white font-bold hover:bg-[#0B4A32] shadow-md flex items-center gap-1.5"
+                  className="px-7 py-2.5 rounded-full bg-[#174E37] text-white font-bold hover:bg-[#0B4A32] shadow-md flex items-center gap-1.5 text-xs"
                 >
-                  {isUploadingImage ? "Uploading Photo..." : "Save Pickle Product"}
+                  {isUploadingImage
+                    ? "Uploading Photo..."
+                    : editingProductId
+                    ? "Update Pickle Product"
+                    : "Save Pickle Product"}
                 </button>
               </div>
             </form>
